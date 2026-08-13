@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, X } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import useAuth from '../context/useAuth'
@@ -13,6 +13,11 @@ const menuItems = [
     icon: Building2,
     label: 'Empresas',
     path: '/empresas',
+  },
+  {
+    icon: MapPin,
+    label: 'Campos',
+    path: '/campos',
   },
 ]
 

@@ -3,6 +3,7 @@ import useAuth from './context/useAuth'
 import LoginPage from './pages/LoginPage'
 import UsersPage from './pages/UsersPage'
 import EmpresasPage from './pages/EmpresasPage'
+import CamposPage from './pages/CamposPage'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
@@ -33,6 +34,14 @@ function App() {
         element={
           <ProtectedRoute>
             <EmpresasPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/campos"
+        element={
+          <ProtectedRoute>
+            <CamposPage />
           </ProtectedRoute>
         }
       />
