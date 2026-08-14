@@ -4,9 +4,6 @@ const emptyForm = {
   matricula: '',
   modelo: '',
   fabricante: '',
-  capacidadLitros: '',
-  anchoTrabajoMetros: '',
-  velocidadCrucero: '',
   estado: 'ACTIVA',
   observaciones: '',
 }
@@ -24,9 +21,6 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave }) {
           matricula: editingAeronave.matricula,
           modelo: editingAeronave.modelo,
           fabricante: editingAeronave.fabricante || '',
-          capacidadLitros: editingAeronave.capacidadLitros ?? '',
-          anchoTrabajoMetros: editingAeronave.anchoTrabajoMetros ?? '',
-          velocidadCrucero: editingAeronave.velocidadCrucero ?? '',
           estado: editingAeronave.estado,
           observaciones: editingAeronave.observaciones || '',
         }
@@ -103,47 +97,6 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave }) {
             value={form.fabricante}
           />
         </label>
-
-        <div className="grid grid-cols-3 gap-4">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-            Capacidad (L) (Opcional)
-            <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              min="0"
-              name="capacidadLitros"
-              onChange={handleChange}
-              step="any"
-              type="number"
-              value={form.capacidadLitros}
-            />
-          </label>
-
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-            Ancho trabajo (m) (Opcional)
-            <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              min="0"
-              name="anchoTrabajoMetros"
-              onChange={handleChange}
-              step="any"
-              type="number"
-              value={form.anchoTrabajoMetros}
-            />
-          </label>
-
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-            Velocidad (km/h) (Opcional)
-            <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              min="0"
-              name="velocidadCrucero"
-              onChange={handleChange}
-              step="any"
-              type="number"
-              value={form.velocidadCrucero}
-            />
-          </label>
-        </div>
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Observaciones (Opcional)

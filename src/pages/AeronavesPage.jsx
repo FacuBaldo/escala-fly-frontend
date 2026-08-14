@@ -192,26 +192,6 @@ function AeronavesPage() {
       ),
     },
     {
-      key: 'anchoTrabajoMetros',
-      header: 'Ancho trabajo',
-      render: (aeronave) =>
-        aeronave.anchoTrabajoMetros != null ? (
-          `${aeronave.anchoTrabajoMetros} m`
-        ) : (
-          <span className="text-slate-400 italic">No especificado</span>
-        ),
-    },
-    {
-      key: 'capacidadLitros',
-      header: 'Capacidad',
-      render: (aeronave) =>
-        aeronave.capacidadLitros != null ? (
-          `${aeronave.capacidadLitros} L`
-        ) : (
-          <span className="text-slate-400 italic">No especificada</span>
-        ),
-    },
-    {
       key: 'estado',
       header: 'Estado',
       render: (aeronave) => (
