@@ -1,4 +1,5 @@
-import { LogOut, Menu, Users, X } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, X } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import useAuth from '../context/useAuth'
 
@@ -6,7 +7,17 @@ const menuItems = [
   {
     icon: Users,
     label: 'Usuarios',
-    isActive: true,
+    path: '/users',
+  },
+  {
+    icon: Building2,
+    label: 'Empresas',
+    path: '/empresas',
+  },
+  {
+    icon: MapPin,
+    label: 'Campos',
+    path: '/campos',
   },
 ]
 
@@ -16,6 +27,7 @@ function AppLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   )
+  const location = useLocation()
 
   const initials = user?.email?.slice(0, 2).toUpperCase() || 'EF'
 
@@ -104,21 +116,21 @@ function AppLayout({ children }) {
         <nav className="flex-1 space-y-1 px-4 py-5">
           {menuItems.map((item) => {
             const Icon = item.icon
+            const isActive = location.pathname.startsWith(item.path)
 
             return (
-              <button
+              <Link
+                to={item.path}
                 className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
-                  item.isActive
+                  isActive
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
                     : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
                 }`}
-                disabled={!item.isActive}
                 key={item.label}
-                type="button"
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
                 <span>{item.label}</span>
-              </button>
+              </Link>
             )
           })}
         </nav>
