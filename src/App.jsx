@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import useAuth from './context/useAuth'
-import LoginPage from './pages/LoginPage'
-import UsersPage from './pages/UsersPage'
+import useAutenticacion from './context/useAutenticacion'
+import IniciarSesionPage from './pages/IniciarSesionPage'
+import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -9,23 +9,23 @@ import PublicRoute from './routes/PublicRoute'
 import './App.css'
 
 function App() {
-  const { token } = useAuth()
+  const { token } = useAutenticacion()
 
   return (
     <Routes>
       <Route
-        path="/login"
+        path="/iniciar-sesion"
         element={
           <PublicRoute>
-            <LoginPage />
+            <IniciarSesionPage />
           </PublicRoute>
         }
       />
       <Route
-        path="/users"
+        path="/usuarios"
         element={
           <ProtectedRoute>
-            <UsersPage />
+            <UsuariosPage />
           </ProtectedRoute>
         }
       />
@@ -45,7 +45,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to={token ? '/users' : '/login'} replace />} />
+      <Route path="*" element={<Navigate to={token ? '/usuarios' : '/iniciar-sesion'} replace />} />
     </Routes>
   )
 }

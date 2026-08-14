@@ -1,11 +1,11 @@
 import { Navigate } from 'react-router-dom'
-import useAuth from '../context/useAuth'
+import useAutenticacion from '../context/useAutenticacion'
 
 function ProtectedRoute({ children }) {
-  const { token } = useAuth()
+  const { token } = useAutenticacion()
 
   if (!token) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/iniciar-sesion" replace />
   }
 
   return children

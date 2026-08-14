@@ -27,7 +27,7 @@ function EmpresasPage() {
       const data = await getEmpresas()
       setEmpresas(data)
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -51,7 +51,7 @@ function EmpresasPage() {
       })
       .catch((requestError) => {
         if (isActive) {
-          if (requestError.isAuthLogout) {
+          if (requestError.cierreSesionPorAutenticacion) {
             return
           }
 
@@ -93,7 +93,7 @@ function EmpresasPage() {
       })
       await loadEmpresas()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -119,7 +119,7 @@ function EmpresasPage() {
       showToast({ message: 'Empresa eliminada correctamente.', type: 'success' })
       await loadEmpresas()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 

@@ -1,20 +1,20 @@
 import { useState } from 'react'
 
 const emptyForm = {
-  firstName: '',
-  lastName: '',
+  nombre: '',
+  apellido: '',
   email: '',
-  password: '',
+  contrasena: '',
 }
 
-function UserForm({ editingUser, isSaving, onCancel, onSave }) {
+function UsuarioForm({ editingUsuario, isSaving, onCancel, onSave }) {
   const [form, setForm] = useState(() =>
-    editingUser
+    editingUsuario
       ? {
-          firstName: editingUser.firstName,
-          lastName: editingUser.lastName,
-          email: editingUser.email,
-          password: '',
+          nombre: editingUsuario.nombre,
+          apellido: editingUsuario.apellido,
+          email: editingUsuario.email,
+          contrasena: '',
         }
       : emptyForm,
   )
@@ -40,11 +40,11 @@ function UserForm({ editingUser, isSaving, onCancel, onSave }) {
           Nombre
           <input
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="firstName"
+            name="nombre"
             onChange={handleChange}
             required
             type="text"
-            value={form.firstName}
+            value={form.nombre}
           />
         </label>
 
@@ -52,11 +52,11 @@ function UserForm({ editingUser, isSaving, onCancel, onSave }) {
           Apellido
           <input
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="lastName"
+            name="apellido"
             onChange={handleChange}
             required
             type="text"
-            value={form.lastName}
+            value={form.apellido}
           />
         </label>
 
@@ -78,11 +78,11 @@ function UserForm({ editingUser, isSaving, onCancel, onSave }) {
           <input
             autoComplete="new-password"
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="password"
+            name="contrasena"
             onChange={handleChange}
             required
             type="password"
-            value={form.password}
+            value={form.contrasena}
           />
         </label>
 
@@ -92,7 +92,7 @@ function UserForm({ editingUser, isSaving, onCancel, onSave }) {
             disabled={isSaving}
             type="submit"
           >
-            {isSaving ? 'Guardando...' : editingUser ? 'Guardar cambios' : 'Crear usuario'}
+            {isSaving ? 'Guardando...' : editingUsuario ? 'Guardar cambios' : 'Crear usuario'}
           </button>
 
           <button
@@ -109,4 +109,4 @@ function UserForm({ editingUser, isSaving, onCancel, onSave }) {
   )
 }
 
-export default UserForm
+export default UsuarioForm

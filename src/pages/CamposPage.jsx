@@ -29,7 +29,7 @@ function CamposPage() {
       const data = await getCampos()
       setCampos(data)
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -54,7 +54,7 @@ function CamposPage() {
       })
       .catch((requestError) => {
         if (isActive) {
-          if (requestError.isAuthLogout) {
+          if (requestError.cierreSesionPorAutenticacion) {
             return
           }
 
@@ -94,7 +94,7 @@ function CamposPage() {
       })
       await loadCampos()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -120,7 +120,7 @@ function CamposPage() {
       showToast({ message: 'Campo eliminado correctamente.', type: 'success' })
       await loadCampos()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 

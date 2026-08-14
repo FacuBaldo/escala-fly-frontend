@@ -5,29 +5,29 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
-import UserForm from '../components/UserForm'
-import { createUser, deleteUser, getUsers, updateUser } from '../api/usersApi'
+import UsuarioForm from '../components/UsuarioForm'
+import { createUsuario, deleteUsuario, getUsuarios, updateUsuario } from '../api/usuariosApi'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
-function UsersPage() {
+function UsuariosPage() {
   const { showToast } = useToast()
-  const [users, setUsers] = useState([])
-  const [editingUser, setEditingUser] = useState(null)
-  const [deletingUser, setDeletingUser] = useState(null)
+  const [usuarios, setUsuarios] = useState([])
+  const [editingUsuario, setEditingUsuario] = useState(null)
+  const [deletingUsuario, setDeletingUsuario] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const loadUsers = async () => {
+  const loadUsuarios = async () => {
     setIsLoading(true)
 
     try {
-      const data = await getUsers()
-      setUsers(data)
+      const data = await getUsuarios()
+      setUsuarios(data)
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -43,15 +43,15 @@ function UsersPage() {
   useEffect(() => {
     let isActive = true
 
-    getUsers()
+    getUsuarios()
       .then((data) => {
         if (isActive) {
-          setUsers(data)
+          setUsuarios(data)
         }
       })
       .catch((requestError) => {
         if (isActive) {
-          if (requestError.isAuthLogout) {
+          if (requestError.cierreSesionPorAutenticacion) {
             return
           }
 
@@ -74,16 +74,16 @@ function UsersPage() {
 
   const handleSave = async (form) => {
     setIsSaving(true)
-    const isEditing = Boolean(editingUser)
+    const isEditing = Boolean(editingUsuario)
 
     try {
-      if (editingUser) {
-        await updateUser(editingUser.id, form)
+      if (editingUsuario) {
+        await updateUsuario(editingUsuario.id, form)
       } else {
-        await createUser(form)
+        await createUsuario(form)
       }
 
-      setEditingUser(null)
+      setEditingUsuario(null)
       setIsDialogOpen(false)
       showToast({
         message: isEditing
@@ -91,9 +91,9 @@ function UsersPage() {
           : 'Usuario creado correctamente.',
         type: 'success',
       })
-      await loadUsers()
+      await loadUsuarios()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -107,19 +107,19 @@ function UsersPage() {
   }
 
   const handleDelete = async () => {
-    if (!deletingUser) {
+    if (!deletingUsuario) {
       return
     }
 
     setIsDeleting(true)
 
     try {
-      await deleteUser(deletingUser.id)
-      setDeletingUser(null)
+      await deleteUsuario(deletingUsuario.id)
+      setDeletingUsuario(null)
       showToast({ message: 'Usuario eliminado correctamente.', type: 'success' })
-      await loadUsers()
+      await loadUsuarios()
     } catch (requestError) {
-      if (requestError.isAuthLogout) {
+      if (requestError.cierreSesionPorAutenticacion) {
         return
       }
 
@@ -133,17 +133,17 @@ function UsersPage() {
   }
 
   const openCreateDialog = () => {
-    setEditingUser(null)
+    setEditingUsuario(null)
     setIsDialogOpen(true)
   }
 
-  const openEditDialog = (user) => {
-    setEditingUser(user)
+  const openEditDialog = (usuario) => {
+    setEditingUsuario(usuario)
     setIsDialogOpen(true)
   }
 
-  const openDeleteDialog = (user) => {
-    setDeletingUser(user)
+  const openDeleteDialog = (usuario) => {
+    setDeletingUsuario(usuario)
   }
 
   const closeDialog = () => {
@@ -152,7 +152,7 @@ function UsersPage() {
     }
 
     setIsDialogOpen(false)
-    setEditingUser(null)
+    setEditingUsuario(null)
   }
 
   const closeDeleteDialog = () => {
@@ -160,7 +160,7 @@ function UsersPage() {
       return
     }
 
-    setDeletingUser(null)
+    setDeletingUsuario(null)
   }
 
   const columns = [
@@ -168,7 +168,7 @@ function UsersPage() {
       key: 'name',
       header: 'Nombre',
       cellClassName: 'font-semibold text-slate-950',
-      render: (user) => `${user.firstName} ${user.lastName}`,
+      render: (usuario) => `${usuario.nombre} ${usuario.apellido}`,
     },
     {
       key: 'email',
@@ -179,21 +179,21 @@ function UsersPage() {
       header: 'Acciones',
       className: 'w-28 text-center',
       cellClassName: 'text-center',
-      render: (user) => (
+      render: (usuario) => (
         <div className="flex justify-center gap-2">
           <button
-            aria-label={`Editar a ${user.firstName} ${user.lastName}`}
+            aria-label={`Editar a ${usuario.nombre} ${usuario.apellido}`}
             className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(user)}
+            onClick={() => openEditDialog(usuario)}
             title="Editar usuario"
             type="button"
           >
             <Pencil aria-hidden="true" size={17} />
           </button>
           <button
-            aria-label={`Eliminar a ${user.firstName} ${user.lastName}`}
+            aria-label={`Eliminar a ${usuario.nombre} ${usuario.apellido}`}
             className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(user)}
+            onClick={() => openDeleteDialog(usuario)}
             title="Eliminar usuario"
             type="button"
           >
@@ -224,21 +224,21 @@ function UsersPage() {
       <DataTable
         columns={columns}
         emptyMessage="No hay usuarios cargados."
-        getRowKey={(user) => user.id}
+        getRowKey={(usuario) => usuario.id}
         isLoading={isLoading}
         loadingMessage="Cargando usuarios..."
-        rows={users}
+        rows={usuarios}
       />
 
       {isDialogOpen && (
         <FormDialog
           isSaving={isSaving}
           onClose={closeDialog}
-          title={editingUser ? 'Editar usuario' : 'Agregar usuario'}
+          title={editingUsuario ? 'Editar usuario' : 'Agregar usuario'}
         >
-          <UserForm
-            key={editingUser?.id || 'new-user'}
-            editingUser={editingUser}
+          <UsuarioForm
+            key={editingUsuario?.id || 'new-usuario'}
+            editingUsuario={editingUsuario}
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
@@ -246,14 +246,14 @@ function UsersPage() {
         </FormDialog>
       )}
 
-      {deletingUser && (
+      {deletingUsuario && (
         <DeleteDialog
           isDeleting={isDeleting}
           message={
             <>
               Estas por eliminar a{' '}
               <span className="font-bold text-slate-950">
-                {deletingUser.firstName} {deletingUser.lastName}
+                {deletingUsuario.nombre} {deletingUsuario.apellido}
               </span>
               . Esta accion no se puede deshacer.
             </>
@@ -267,4 +267,4 @@ function UsersPage() {
   )
 }
 
-export default UsersPage
+export default UsuariosPage

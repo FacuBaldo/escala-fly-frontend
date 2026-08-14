@@ -1,13 +1,13 @@
 import { LogOut, Menu, Users, Building2, MapPin, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import useAuth from '../context/useAuth'
+import useAutenticacion from '../context/useAutenticacion'
 
 const menuItems = [
   {
     icon: Users,
     label: 'Usuarios',
-    path: '/users',
+    path: '/usuarios',
   },
   {
     icon: Building2,
@@ -22,18 +22,18 @@ const menuItems = [
 ]
 
 function AppLayout({ children }) {
-  const { logout, user } = useAuth()
+  const { cerrarSesion, usuario } = useAutenticacion()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   )
   const location = useLocation()
 
-  const initials = user?.email?.slice(0, 2).toUpperCase() || 'EF'
+  const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
 
   const handleLogout = () => {
     setIsMenuOpen(false)
-    logout()
+    cerrarSesion()
   }
 
   const toggleSidebar = () => {
@@ -64,7 +64,7 @@ function AppLayout({ children }) {
             onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
             type="button"
           >
-            {initials}
+            {iniciales}
           </button>
 
           {isMenuOpen && (

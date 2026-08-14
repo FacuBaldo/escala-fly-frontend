@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import useAuth from '../context/useAuth'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
 const initialForm = {
   email: '',
-  password: '',
+  contrasena: '',
 }
 
-function LoginPage() {
+function IniciarSesionPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { iniciarSesion } = useAutenticacion()
   const { showToast } = useToast()
   const [form, setForm] = useState(initialForm)
   const [isLoading, setIsLoading] = useState(false)
@@ -32,8 +32,8 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      await login(form)
-      navigate('/users', { replace: true })
+      await iniciarSesion(form)
+      navigate('/usuarios', { replace: true })
     } catch (requestError) {
       showToast({
         message: getErrorMessage(requestError, 'No se pudo iniciar sesion.'),
@@ -79,11 +79,11 @@ function LoginPage() {
               <input
                 autoComplete="current-password"
                 className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 pr-11 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-                name="password"
+                name="contrasena"
                 onChange={handleChange}
                 required
                 type={showPassword ? 'text' : 'password'}
-                value={form.password}
+                value={form.contrasena}
               />
               <button
                 aria-label={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
@@ -114,4 +114,4 @@ function LoginPage() {
   )
 }
 
-export default LoginPage
+export default IniciarSesionPage

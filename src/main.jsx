@@ -3,16 +3,16 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
-import AuthProvider from './context/AuthProvider.jsx'
+import AutenticacionProvider from './context/AutenticacionProvider.jsx'
 import ToastProvider from './context/ToastProvider.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <ToastProvider>
-        <AuthProvider>
+        <AutenticacionProvider>
           <App />
-        </AuthProvider>
+        </AutenticacionProvider>
       </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
