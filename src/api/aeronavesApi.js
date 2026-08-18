@@ -1,8 +1,8 @@
 import apiClient from './apiClient'
 
-const getAeronaves = async (estado) => {
+const getAeronaves = async ({ estado, empresaId } = {}) => {
   const response = await apiClient.get('/aeronaves', {
-    params: estado ? { estado } : undefined,
+    params: { estado, empresaId },
   })
 
   return response.data

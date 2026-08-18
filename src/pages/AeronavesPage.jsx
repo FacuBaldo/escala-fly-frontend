@@ -7,6 +7,7 @@ import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import AeronaveForm from '../components/AeronaveForm'
 import { createAeronave, deleteAeronave, getAeronaves, updateAeronave } from '../api/aeronavesApi'
+import { getEmpresas } from '../api/empresasApi'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
@@ -25,6 +26,7 @@ const estadoLabels = {
 function AeronavesPage() {
   const { showToast } = useToast()
   const [aeronaves, setAeronaves] = useState([])
+  const [empresas, setEmpresas] = useState([])
   const [editingAeronave, setEditingAeronave] = useState(null)
   const [deletingAeronave, setDeletingAeronave] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -55,10 +57,11 @@ function AeronavesPage() {
   useEffect(() => {
     let isActive = true
 
-    getAeronaves()
-      .then((data) => {
+    Promise.all([getAeronaves(), getEmpresas()])
+      .then(([aeronavesData, empresasData]) => {
         if (isActive) {
-          setAeronaves(data)
+          setAeronaves(aeronavesData)
+          setEmpresas(empresasData)
         }
       })
       .catch((requestError) => {
@@ -173,11 +176,22 @@ function AeronavesPage() {
     setDeletingAeronave(null)
   }
 
+  const getEmpresaNombre = (empresaId) =>
+    empresas.find((empresa) => empresa.id === empresaId)?.nombre
+
   const columns = [
     {
       key: 'matricula',
       header: 'Matricula',
       cellClassName: 'font-semibold text-slate-950',
+    },
+    {
+      key: 'empresa',
+      header: 'Empresa',
+      render: (aeronave) =>
+        getEmpresaNombre(aeronave.empresaId) || (
+          <span className="text-slate-400 italic">Sin empresa</span>
+        ),
     },
     {
       key: 'modelo',
@@ -237,8 +251,10 @@ function AeronavesPage() {
       <PageHeader
         action={
           <button
-            className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800"
+            className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={empresas.length === 0}
             onClick={openCreateDialog}
+            title={empresas.length === 0 ? 'Primero crea una empresa' : undefined}
             type="button"
           >
             <Plus aria-hidden="true" size={18} />
@@ -267,6 +283,7 @@ function AeronavesPage() {
           <AeronaveForm
             key={editingAeronave?.id || 'new-aeronave'}
             editingAeronave={editingAeronave}
+            empresas={empresas}
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
