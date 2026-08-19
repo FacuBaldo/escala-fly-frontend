@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, MapPin, X } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, Package, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import useAutenticacion from '../context/useAutenticacion'
@@ -18,6 +18,11 @@ const menuItems = [
     icon: MapPin,
     label: 'Campos',
     path: '/campos',
+  },
+  {
+    icon: Package,
+    label: 'Productos',
+    path: '/productos',
   },
 ]
 

@@ -4,6 +4,7 @@ import IniciarSesionPage from './pages/IniciarSesionPage'
 import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
+import ProductosPage from './pages/ProductosPage'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
@@ -42,6 +43,14 @@ function App() {
         element={
           <ProtectedRoute>
             <CamposPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/productos"
+        element={
+          <ProtectedRoute>
+            <ProductosPage />
           </ProtectedRoute>
         }
       />
