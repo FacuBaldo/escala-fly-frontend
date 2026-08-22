@@ -4,6 +4,7 @@ import IniciarSesionPage from './pages/IniciarSesionPage'
 import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
+import ProductosPage from './pages/ProductosPage'
 import AeronavesPage from './pages/AeronavesPage'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
@@ -47,6 +48,10 @@ function App() {
         }
       />
       <Route
+        path="/productos"
+        element={
+          <ProtectedRoute>
+            <ProductosPage />
         path="/aeronaves"
         element={
           <ProtectedRoute>
