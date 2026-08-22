@@ -5,6 +5,7 @@ import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
 import ProductosPage from './pages/ProductosPage'
+import AeronavesPage from './pages/AeronavesPage'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
@@ -51,6 +52,10 @@ function App() {
         element={
           <ProtectedRoute>
             <ProductosPage />
+        path="/aeronaves"
+        element={
+          <ProtectedRoute>
+            <AeronavesPage />
           </ProtectedRoute>
         }
       />
