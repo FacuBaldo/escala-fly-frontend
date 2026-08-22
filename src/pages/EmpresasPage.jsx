@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
+import PageLoader from '../components/PageLoader'
 import EmpresaForm from '../components/EmpresaForm'
 import { createEmpresa, deleteEmpresa, getEmpresas, updateEmpresa } from '../api/empresasApi'
 import useToast from '../context/useToast'
@@ -209,6 +210,14 @@ function EmpresasPage() {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageLoader message="Cargando empresas..." />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <PageHeader
@@ -230,8 +239,6 @@ function EmpresasPage() {
         columns={columns}
         emptyMessage="No hay empresas cargadas."
         getRowKey={(empresa) => empresa.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando empresas..."
         rows={empresas}
       />
 

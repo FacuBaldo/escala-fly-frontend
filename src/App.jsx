@@ -52,6 +52,10 @@ function App() {
         element={
           <ProtectedRoute>
             <ProductosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/aeronaves"
         element={
           <ProtectedRoute>

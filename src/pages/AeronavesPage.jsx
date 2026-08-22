@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
+import PageLoader from '../components/PageLoader'
 import AeronaveForm from '../components/AeronaveForm'
 import { createAeronave, deleteAeronave, getAeronaves, updateAeronave } from '../api/aeronavesApi'
 import { getEmpresas } from '../api/empresasApi'
@@ -246,6 +247,14 @@ function AeronavesPage() {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageLoader message="Cargando aeronaves..." />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <PageHeader
@@ -269,8 +278,6 @@ function AeronavesPage() {
         columns={columns}
         emptyMessage="No hay aeronaves cargadas."
         getRowKey={(aeronave) => aeronave.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando aeronaves..."
         rows={aeronaves}
       />
 

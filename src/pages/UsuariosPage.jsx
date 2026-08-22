@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
+import PageLoader from '../components/PageLoader'
 import UsuarioForm from '../components/UsuarioForm'
 import { createUsuario, deleteUsuario, getUsuarios, updateUsuario } from '../api/usuariosApi'
 import useToast from '../context/useToast'
@@ -204,6 +205,14 @@ function UsuariosPage() {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageLoader message="Cargando usuarios..." />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <PageHeader
@@ -225,8 +234,6 @@ function UsuariosPage() {
         columns={columns}
         emptyMessage="No hay usuarios cargados."
         getRowKey={(usuario) => usuario.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando usuarios..."
         rows={usuarios}
       />
 

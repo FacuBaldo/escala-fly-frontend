@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
+import PageLoader from '../components/PageLoader'
 import ProductoForm, { TIPOS_PRODUCTO } from '../components/ProductoForm'
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../api/productosApi'
 import { getEmpresas } from '../api/empresasApi'
@@ -252,6 +253,14 @@ function ProductosPage() {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageLoader message="Cargando productos..." />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <PageHeader
@@ -275,8 +284,6 @@ function ProductosPage() {
         columns={columns}
         emptyMessage="No hay productos cargados."
         getRowKey={(producto) => producto.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando productos..."
         rows={productos}
       />
 

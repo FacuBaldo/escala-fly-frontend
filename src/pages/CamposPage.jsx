@@ -5,6 +5,7 @@ import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
+import PageLoader from '../components/PageLoader'
 import CampoForm from '../components/CampoForm'
 import { createCampo, deleteCampo, getCampos, updateCampo } from '../api/camposApi'
 import { getEmpresas } from '../api/empresasApi'
@@ -216,6 +217,14 @@ function CamposPage() {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageLoader message="Cargando campos..." />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <PageHeader
@@ -239,8 +248,6 @@ function CamposPage() {
         columns={columns}
         emptyMessage="No hay campos cargados."
         getRowKey={(campo) => campo.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando campos..."
         rows={campos}
       />
 

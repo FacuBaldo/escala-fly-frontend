@@ -1,4 +1,4 @@
-function DataTable({ columns, emptyMessage, getRowKey, isLoading, loadingMessage, rows }) {
+function DataTable({ columns, emptyMessage, getRowKey, rows }) {
   return (
     <section className="min-w-0 rounded-lg border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
       <div className="overflow-x-auto">
@@ -18,15 +18,7 @@ function DataTable({ columns, emptyMessage, getRowKey, isLoading, loadingMessage
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td className="px-4 py-6 text-center text-slate-500" colSpan={columns.length}>
-                  {loadingMessage}
-                </td>
-              </tr>
-            )}
-
-            {!isLoading && rows.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-center text-slate-500" colSpan={columns.length}>
                   {emptyMessage}
@@ -34,19 +26,18 @@ function DataTable({ columns, emptyMessage, getRowKey, isLoading, loadingMessage
               </tr>
             )}
 
-            {!isLoading &&
-              rows.map((row) => (
-                <tr
-                  className="border-b border-slate-100 text-sm text-slate-700"
-                  key={getRowKey(row)}
-                >
-                  {columns.map((column) => (
-                    <td className={`px-4 py-4 ${column.cellClassName || ''}`} key={column.key}>
-                      {column.render ? column.render(row) : row[column.key]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+            {rows.map((row) => (
+              <tr
+                className="border-b border-slate-100 text-sm text-slate-700"
+                key={getRowKey(row)}
+              >
+                {columns.map((column) => (
+                  <td className={`px-4 py-4 ${column.cellClassName || ''}`} key={column.key}>
+                    {column.render ? column.render(row) : row[column.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
