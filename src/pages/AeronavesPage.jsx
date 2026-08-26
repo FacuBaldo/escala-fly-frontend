@@ -9,6 +9,8 @@ import PageLoader from '../components/PageLoader'
 import AeronaveForm from '../components/AeronaveForm'
 import { createAeronave, deleteAeronave, getAeronaves, updateAeronave } from '../api/aeronavesApi'
 import { getEmpresas } from '../api/empresasApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
@@ -25,6 +27,7 @@ const estadoLabels = {
 }
 
 function AeronavesPage() {
+  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [aeronaves, setAeronaves] = useState([])
   const [empresas, setEmpresas] = useState([])
@@ -179,6 +182,7 @@ function AeronavesPage() {
 
   const getEmpresaNombre = (empresaId) =>
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
+  const isAdmin = usuario?.rol === ROLES.ADMIN
 
   const columns = [
     {
@@ -186,14 +190,18 @@ function AeronavesPage() {
       header: 'Matricula',
       cellClassName: 'font-semibold text-slate-950',
     },
-    {
-      key: 'empresa',
-      header: 'Empresa',
-      render: (aeronave) =>
-        getEmpresaNombre(aeronave.empresaId) || (
-          <span className="text-slate-400 italic">Sin empresa</span>
-        ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'empresa',
+            header: 'Empresa',
+            render: (aeronave) =>
+              getEmpresaNombre(aeronave.empresaId) || (
+                <span className="text-slate-400 italic">Sin empresa</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: 'modelo',
       header: 'Modelo',
@@ -294,6 +302,7 @@ function AeronavesPage() {
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
+            showEmpresa={isAdmin}
           />
         </FormDialog>
       )}

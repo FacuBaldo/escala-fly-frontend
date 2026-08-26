@@ -9,10 +9,13 @@ import PageLoader from '../components/PageLoader'
 import CampoForm from '../components/CampoForm'
 import { createCampo, deleteCampo, getCampos, updateCampo } from '../api/camposApi'
 import { getEmpresas } from '../api/empresasApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function CamposPage() {
+  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [campos, setCampos] = useState([])
   const [empresas, setEmpresas] = useState([])
@@ -167,6 +170,7 @@ function CamposPage() {
 
   const getEmpresaNombre = (empresaId) =>
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
+  const isAdmin = usuario?.rol === ROLES.ADMIN
 
   const columns = [
     {
@@ -174,14 +178,18 @@ function CamposPage() {
       header: 'Nombre',
       cellClassName: 'font-semibold text-slate-950',
     },
-    {
-      key: 'empresa',
-      header: 'Empresa',
-      render: (campo) =>
-        getEmpresaNombre(campo.empresaId) || (
-          <span className="text-slate-400 italic">Sin empresa</span>
-        ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'empresa',
+            header: 'Empresa',
+            render: (campo) =>
+              getEmpresaNombre(campo.empresaId) || (
+                <span className="text-slate-400 italic">Sin empresa</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: 'ubicacion',
       header: 'Ubicacion',
@@ -264,6 +272,7 @@ function CamposPage() {
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
+            showEmpresa={isAdmin}
           />
         </FormDialog>
       )}

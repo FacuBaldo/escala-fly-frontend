@@ -6,4 +6,10 @@ const iniciarSesion = async ({ email, contrasena }) => {
   return response.data
 }
 
-export { iniciarSesion }
+const getSesionActual = async () => {
+  const response = await apiClient.get('/autenticacion/me')
+
+  return response.data
+}
+
+export { getSesionActual, iniciarSesion }

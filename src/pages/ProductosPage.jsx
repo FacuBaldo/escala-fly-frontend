@@ -9,6 +9,8 @@ import PageLoader from '../components/PageLoader'
 import ProductoForm, { TIPOS_PRODUCTO } from '../components/ProductoForm'
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../api/productosApi'
 import { getEmpresas } from '../api/empresasApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
@@ -22,6 +24,7 @@ const TIPO_BADGE_STYLES = {
 }
 
 function ProductosPage() {
+  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [productos, setProductos] = useState([])
   const [empresas, setEmpresas] = useState([])
@@ -184,6 +187,7 @@ function ProductosPage() {
 
   const getTipoLabel = (tipo) =>
     TIPOS_PRODUCTO.find((item) => item.value === tipo)?.label || tipo
+  const isAdmin = usuario?.rol === ROLES.ADMIN
 
   const columns = [
     {
@@ -215,14 +219,18 @@ function ProductosPage() {
         <span className="font-mono text-sm text-slate-700">{producto.unidadMedida}</span>
       ),
     },
-    {
-      key: 'empresa',
-      header: 'Empresa',
-      render: (producto) =>
-        getEmpresaNombre(producto.empresaId) || (
-          <span className="text-slate-400 italic">Sin empresa</span>
-        ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'empresa',
+            header: 'Empresa',
+            render: (producto) =>
+              getEmpresaNombre(producto.empresaId) || (
+                <span className="text-slate-400 italic">Sin empresa</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: 'actions',
       header: 'Acciones',
@@ -300,6 +308,7 @@ function ProductosPage() {
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
+            showEmpresa={isAdmin}
           />
         </FormDialog>
       )}

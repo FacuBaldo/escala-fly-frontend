@@ -38,6 +38,17 @@ apiClient.interceptors.response.use(
       window.dispatchEvent(new Event('autenticacion:cerrar-sesion'))
     }
 
+    if (error.response?.status === 403) {
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: {
+            message: 'No tenes permisos para realizar esta accion.',
+            type: 'error',
+          },
+        }),
+      )
+    }
+
     return Promise.reject(error)
   },
 )

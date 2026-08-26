@@ -8,10 +8,13 @@ import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import EmpresaForm from '../components/EmpresaForm'
 import { createEmpresa, deleteEmpresa, getEmpresas, updateEmpresa } from '../api/empresasApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function EmpresasPage() {
+  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [empresas, setEmpresas] = useState([])
   const [editingEmpresa, setEditingEmpresa] = useState(null)
@@ -196,15 +199,17 @@ function EmpresasPage() {
           >
             <Pencil aria-hidden="true" size={17} />
           </button>
-          <button
-            aria-label={`Eliminar a ${empresa.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(empresa)}
-            title="Eliminar empresa"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
+          {usuario?.rol === ROLES.ADMIN && (
+            <button
+              aria-label={`Eliminar a ${empresa.nombre}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
+              onClick={() => openDeleteDialog(empresa)}
+              title="Eliminar empresa"
+              type="button"
+            >
+              <Trash2 aria-hidden="true" size={17} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -221,7 +226,7 @@ function EmpresasPage() {
   return (
     <AppLayout>
       <PageHeader
-        action={
+        action={usuario?.rol === ROLES.ADMIN ? (
           <button
             className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800"
             onClick={openCreateDialog}
@@ -230,7 +235,7 @@ function EmpresasPage() {
             <Plus aria-hidden="true" size={18} />
             Agregar empresa
           </button>
-        }
+        ) : null}
         subtitle="Administra altas, modificaciones y bajas de empresas."
         title="Empresas"
       />

@@ -1,6 +1,7 @@
 import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import { ROLES, hasRole } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 
 const menuItems = [
@@ -8,26 +9,31 @@ const menuItems = [
     icon: Users,
     label: 'Usuarios',
     path: '/usuarios',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {
     icon: Building2,
     label: 'Empresas',
     path: '/empresas',
+    roles: [ROLES.ADMIN],
   },
   {
     icon: MapPin,
     label: 'Campos',
     path: '/campos',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {
     icon: Plane,
     label: 'Aeronaves',
     path: '/aeronaves',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {
     icon: Package,
     label: 'Productos',
     path: '/productos',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
 ]
 
@@ -40,6 +46,7 @@ function AppLayout({ children }) {
   const location = useLocation()
 
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
+  const visibleMenuItems = menuItems.filter((item) => hasRole(usuario, item.roles))
 
   const handleLogout = () => {
     setIsMenuOpen(false)
@@ -124,7 +131,7 @@ function AppLayout({ children }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-4 py-5">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname.startsWith(item.path)
 

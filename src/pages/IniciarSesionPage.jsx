@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { getDefaultRoute } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
@@ -32,8 +33,8 @@ function IniciarSesionPage() {
     setIsLoading(true)
 
     try {
-      await iniciarSesion(form)
-      navigate('/usuarios', { replace: true })
+      const usuario = await iniciarSesion(form)
+      navigate(getDefaultRoute(usuario), { replace: true })
     } catch (requestError) {
       showToast({
         message: getErrorMessage(requestError, 'No se pudo iniciar sesion.'),

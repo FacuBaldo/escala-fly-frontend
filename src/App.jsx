@@ -6,12 +6,15 @@ import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
 import ProductosPage from './pages/ProductosPage'
 import AeronavesPage from './pages/AeronavesPage'
+import SinAccesoPage from './pages/SinAccesoPage'
+import { ROLES, getDefaultRoute } from './auth/roles'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
 
 function App() {
-  const { token } = useAutenticacion()
+  const { token, usuario } = useAutenticacion()
+  const rolesOperativos = [ROLES.ADMIN, ROLES.ENCARGADO]
 
   return (
     <Routes>
@@ -26,7 +29,7 @@ function App() {
       <Route
         path="/usuarios"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={rolesOperativos}>
             <UsuariosPage />
           </ProtectedRoute>
         }
@@ -34,7 +37,7 @@ function App() {
       <Route
         path="/empresas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={[ROLES.ADMIN]}>
             <EmpresasPage />
           </ProtectedRoute>
         }
@@ -42,7 +45,7 @@ function App() {
       <Route
         path="/campos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={rolesOperativos}>
             <CamposPage />
           </ProtectedRoute>
         }
@@ -50,7 +53,7 @@ function App() {
       <Route
         path="/productos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={rolesOperativos}>
             <ProductosPage />
           </ProtectedRoute>
         }
@@ -58,12 +61,20 @@ function App() {
       <Route
         path="/aeronaves"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={rolesOperativos}>
             <AeronavesPage />
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to={token ? '/usuarios' : '/iniciar-sesion'} replace />} />
+      <Route
+        path="/sin-acceso"
+        element={
+          <ProtectedRoute>
+            <SinAccesoPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to={token ? getDefaultRoute(usuario) : '/iniciar-sesion'} replace />} />
     </Routes>
   )
 }

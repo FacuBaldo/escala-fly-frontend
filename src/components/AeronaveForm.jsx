@@ -15,7 +15,7 @@ const estadoOptions = [
   { value: 'INACTIVA', label: 'Inactiva' },
 ]
 
-function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave }) {
+function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, showEmpresa = true }) {
   const [form, setForm] = useState(() =>
     editingAeronave
       ? {
@@ -76,25 +76,27 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave })
           </label>
         </div>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Empresa
-          <select
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="empresaId"
-            onChange={handleChange}
-            required
-            value={form.empresaId}
-          >
-            <option disabled value="">
-              Selecciona una empresa
-            </option>
-            {empresas.map((empresa) => (
-              <option key={empresa.id} value={empresa.id}>
-                {empresa.nombre}
+        {showEmpresa && (
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Empresa
+            <select
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              name="empresaId"
+              onChange={handleChange}
+              required
+              value={form.empresaId}
+            >
+              <option disabled value="">
+                Selecciona una empresa
               </option>
-            ))}
-          </select>
-        </label>
+              {empresas.map((empresa) => (
+                <option key={empresa.id} value={empresa.id}>
+                  {empresa.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Modelo

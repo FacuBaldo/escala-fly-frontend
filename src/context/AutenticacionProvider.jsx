@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { iniciarSesion as iniciarSesionRequest } from '../api/autenticacionApi'
+import { getSesionActual, iniciarSesion as iniciarSesionRequest } from '../api/autenticacionApi'
 import { CLAVE_TOKEN, CLAVE_USUARIO } from '../api/apiClient'
 import AutenticacionContext from './autenticacionContext'
 
@@ -21,12 +21,14 @@ const readStoredUsuario = () => {
 function AutenticacionProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(CLAVE_TOKEN))
   const [usuario, setUsuario] = useState(readStoredUsuario)
+  const [status, setStatus] = useState(() => (localStorage.getItem(CLAVE_TOKEN) ? 'loading' : 'anonymous'))
 
   const cerrarSesion = () => {
     localStorage.removeItem(CLAVE_TOKEN)
     localStorage.removeItem(CLAVE_USUARIO)
     setToken(null)
     setUsuario(null)
+    setStatus('anonymous')
   }
 
   const iniciarSesion = async (credenciales) => {
@@ -36,6 +38,9 @@ function AutenticacionProvider({ children }) {
     localStorage.setItem(CLAVE_USUARIO, JSON.stringify(data.usuario))
     setToken(data.token)
     setUsuario(data.usuario)
+    setStatus('authenticated')
+
+    return data.usuario
   }
 
   useEffect(() => {
@@ -46,14 +51,45 @@ function AutenticacionProvider({ children }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!token) {
+      setStatus('anonymous')
+      return undefined
+    }
+
+    let isActive = true
+
+    setStatus('loading')
+    getSesionActual()
+      .then((usuarioActual) => {
+        if (!isActive) {
+          return
+        }
+
+        localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuarioActual))
+        setUsuario(usuarioActual)
+        setStatus('authenticated')
+      })
+      .catch((error) => {
+        if (isActive && !error.cierreSesionPorAutenticacion) {
+          cerrarSesion()
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [token])
+
   const value = useMemo(
     () => ({
       cerrarSesion,
       iniciarSesion,
+      status,
       token,
       usuario,
     }),
-    [token, usuario],
+    [status, token, usuario],
   )
 
   return <AutenticacionContext.Provider value={value}>{children}</AutenticacionContext.Provider>

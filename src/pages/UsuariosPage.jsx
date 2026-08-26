@@ -7,13 +7,18 @@ import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import UsuarioForm from '../components/UsuarioForm'
+import { getEmpresas } from '../api/empresasApi'
 import { createUsuario, deleteUsuario, getUsuarios, updateUsuario } from '../api/usuariosApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function UsuariosPage() {
+  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [usuarios, setUsuarios] = useState([])
+  const [empresas, setEmpresas] = useState([])
   const [editingUsuario, setEditingUsuario] = useState(null)
   const [deletingUsuario, setDeletingUsuario] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -44,20 +49,26 @@ function UsuariosPage() {
   useEffect(() => {
     let isActive = true
 
-    getUsuarios()
-      .then((data) => {
-        if (isActive) {
-          setUsuarios(data)
+    Promise.allSettled([getUsuarios(), getEmpresas()])
+      .then(([usuariosRes, empresasRes]) => {
+        if (!isActive) {
+          return
         }
-      })
-      .catch((requestError) => {
-        if (isActive) {
-          if (requestError.cierreSesionPorAutenticacion) {
-            return
-          }
 
+        if (usuariosRes.status === 'fulfilled') {
+          setUsuarios(usuariosRes.value)
+        } else if (!usuariosRes.reason?.cierreSesionPorAutenticacion) {
           showToast({
-            message: getErrorMessage(requestError, 'No se pudieron cargar los usuarios.'),
+            message: getErrorMessage(usuariosRes.reason, 'No se pudieron cargar los usuarios.'),
+            type: 'error',
+          })
+        }
+
+        if (empresasRes.status === 'fulfilled') {
+          setEmpresas(empresasRes.value)
+        } else if (!empresasRes.reason?.cierreSesionPorAutenticacion) {
+          showToast({
+            message: getErrorMessage(empresasRes.reason, 'No se pudieron cargar las empresas.'),
             type: 'error',
           })
         }
@@ -164,6 +175,13 @@ function UsuariosPage() {
     setDeletingUsuario(null)
   }
 
+  const getEmpresaNombre = (empresaId) =>
+    empresas.find((empresa) => empresa.id === empresaId)?.nombre
+
+  const getRolLabel = (rol) =>
+    ({ ADMIN: 'Admin', ENCARGADO: 'Encargado', PILOTO: 'Piloto', CLIENTE: 'Cliente' })[rol] || rol
+  const isAdmin = usuario?.rol === ROLES.ADMIN
+
   const columns = [
     {
       key: 'name',
@@ -175,6 +193,23 @@ function UsuariosPage() {
       key: 'email',
       header: 'Email',
     },
+    {
+      key: 'rol',
+      header: 'Rol',
+      render: (usuarioItem) => getRolLabel(usuarioItem.rol),
+    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'empresa',
+            header: 'Empresa',
+            render: (usuarioItem) =>
+              usuarioItem.rol === ROLES.ADMIN
+                ? '-'
+                : getEmpresaNombre(usuarioItem.empresaId) || 'Sin empresa',
+          },
+        ]
+      : []),
     {
       key: 'actions',
       header: 'Acciones',
@@ -246,6 +281,8 @@ function UsuariosPage() {
           <UsuarioForm
             key={editingUsuario?.id || 'new-usuario'}
             editingUsuario={editingUsuario}
+            empresas={empresas}
+            isAdmin={isAdmin}
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}

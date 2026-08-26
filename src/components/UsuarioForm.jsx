@@ -5,9 +5,19 @@ const emptyForm = {
   apellido: '',
   email: '',
   contrasena: '',
+  rol: 'CLIENTE',
+  empresaId: '',
 }
 
-function UsuarioForm({ editingUsuario, isSaving, onCancel, onSave }) {
+const rolLabels = {
+  ADMIN: 'Admin',
+  ENCARGADO: 'Encargado',
+  PILOTO: 'Piloto',
+  CLIENTE: 'Cliente',
+}
+
+function UsuarioForm({ editingUsuario, empresas, isAdmin, isSaving, onCancel, onSave }) {
+  const rolesDisponibles = isAdmin ? ['ADMIN', 'ENCARGADO', 'PILOTO', 'CLIENTE'] : ['ENCARGADO', 'PILOTO', 'CLIENTE']
   const [form, setForm] = useState(() =>
     editingUsuario
       ? {
@@ -15,6 +25,8 @@ function UsuarioForm({ editingUsuario, isSaving, onCancel, onSave }) {
           apellido: editingUsuario.apellido,
           email: editingUsuario.email,
           contrasena: '',
+          rol: editingUsuario.rol,
+          empresaId: editingUsuario.empresaId || '',
         }
       : emptyForm,
   )
@@ -32,6 +44,8 @@ function UsuarioForm({ editingUsuario, isSaving, onCancel, onSave }) {
     event.preventDefault()
     await onSave(form)
   }
+
+  const requiresEmpresa = form.rol !== 'ADMIN'
 
   return (
     <div>
@@ -74,16 +88,56 @@ function UsuarioForm({ editingUsuario, isSaving, onCancel, onSave }) {
         </label>
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Contrasena
+          Rol
+          <select
+            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            name="rol"
+            onChange={handleChange}
+            required
+            value={form.rol}
+          >
+            {rolesDisponibles.map((rol) => (
+              <option key={rol} value={rol}>
+                {rolLabels[rol]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {isAdmin && requiresEmpresa && (
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Empresa
+            <select
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              name="empresaId"
+              onChange={handleChange}
+              required
+              value={form.empresaId}
+            >
+              <option value="">Selecciona una empresa</option>
+              {empresas.map((empresa) => (
+                <option key={empresa.id} value={empresa.id}>
+                  {empresa.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          {editingUsuario ? 'Nueva contrasena' : 'Contrasena'}
           <input
             autoComplete="new-password"
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
             name="contrasena"
             onChange={handleChange}
-            required
+            required={!editingUsuario}
             type="password"
             value={form.contrasena}
           />
+          {editingUsuario && (
+            <span className="text-xs font-normal text-slate-500">Dejala vacia para mantener la contrasena actual.</span>
+          )}
         </label>
 
         <div className="flex flex-wrap gap-2 pt-2">
