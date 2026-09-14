@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Bitacoras internas del equipo (no se versionan)
+BITACORA*.md
