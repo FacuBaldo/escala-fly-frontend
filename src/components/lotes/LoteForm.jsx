@@ -3,20 +3,11 @@ import { useState } from 'react'
 const inputClassName =
   'rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
 
-function LoteForm({ campoIdInicial, campos, editingLote, isSaving, onCancel, onSave }) {
-  const [form, setForm] = useState(() =>
-    editingLote
-      ? {
-          nombre: editingLote.nombre,
-          descripcion: editingLote.descripcion || '',
-          campoId: editingLote.campoId,
-        }
-      : {
-          nombre: '',
-          descripcion: '',
-          campoId: campoIdInicial || '',
-        },
-  )
+function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave }) {
+  const [form, setForm] = useState(() => ({
+    nombre: editingLote?.nombre || '',
+    descripcion: editingLote?.descripcion || '',
+  }))
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -47,25 +38,9 @@ function LoteForm({ campoIdInicial, campos, editingLote, isSaving, onCancel, onS
         />
       </label>
 
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
-        Campo
-        <select
-          className={`h-11 ${inputClassName}`}
-          name="campoId"
-          onChange={handleChange}
-          required
-          value={form.campoId}
-        >
-          <option disabled value="">
-            Selecciona un campo
-          </option>
-          {campos.map((campo) => (
-            <option key={campo.id} value={campo.id}>
-              {campo.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
+      <p className="text-sm text-slate-600">
+        Campo: <span className="font-semibold text-slate-950">{nombreCampo}</span>
+      </p>
 
       <label className="grid gap-2 text-sm font-semibold text-slate-700">
         Descripcion (Opcional)

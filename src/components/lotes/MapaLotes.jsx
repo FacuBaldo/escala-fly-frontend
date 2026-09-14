@@ -5,6 +5,8 @@ import '@geoman-io/leaflet-geoman-free'
 import 'leaflet/dist/leaflet.css'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import { formatearSuperficie } from '../../utils/lotes'
+import { buscarLugares, parseCoordenadas } from '../../utils/mapa'
+import BuscadorMapa from './BuscadorMapa'
 
 // San Francisco, Cordoba
 const CENTRO_POR_DEFECTO = [-31.4278, -62.0828]
@@ -30,23 +32,47 @@ const getEstilo = (lote, isSelected) => {
   return { color: COLOR_ACTIVO, fillColor: COLOR_ACTIVO, fillOpacity: 0.25, weight: 2 }
 }
 
-function AjustarVista({ lotes, selectedLoteId, vistaVersion }) {
+function AjustarVista({ lotes, selectedLoteId, ubicacionCampo, vistaVersion }) {
   const map = useMap()
   const lotesRef = useRef(lotes)
+  const ubicacionRef = useRef(ubicacionCampo)
 
   useEffect(() => {
     lotesRef.current = lotes
-  }, [lotes])
+    ubicacionRef.current = ubicacionCampo
+  }, [lotes, ubicacionCampo])
 
   useEffect(() => {
     const lotesActuales = lotesRef.current
 
-    if (lotesActuales.length === 0) {
-      return
+    if (lotesActuales.length > 0) {
+      const bounds = L.latLngBounds(lotesActuales.flatMap((lote) => toLatLngs(lote.geometria)[0]))
+      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 })
+      return undefined
     }
 
-    const bounds = L.latLngBounds(lotesActuales.flatMap((lote) => toLatLngs(lote.geometria)[0]))
-    map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 })
+    // Campo sin lotes: centrar el mapa en la ubicacion cargada del campo (coordenadas o localidad)
+    const ubicacion = ubicacionRef.current?.trim()
+    if (!ubicacion) {
+      return undefined
+    }
+
+    const coordenadas = parseCoordenadas(ubicacion)
+    if (coordenadas) {
+      map.setView([coordenadas.lat, coordenadas.lng], 14)
+      return undefined
+    }
+
+    const controller = new AbortController()
+    buscarLugares(ubicacion, { signal: controller.signal })
+      .then(([lugar]) => {
+        if (lugar) {
+          map.fitBounds(lugar.bounds, { maxZoom: 14 })
+        }
+      })
+      .catch(() => {})
+
+    return () => controller.abort()
   }, [map, vistaVersion])
 
   useEffect(() => {
@@ -126,6 +152,7 @@ function MapaLotes({
   onPoligonoDibujado,
   onSelectLote,
   selectedLoteId,
+  ubicacionCampo,
   vistaVersion,
 }) {
   const isInteractivo = !isDibujando && !loteEnEdicion
@@ -175,7 +202,13 @@ function MapaLotes({
           </Polygon>
         ))}
 
-      <AjustarVista lotes={lotes} selectedLoteId={selectedLoteId} vistaVersion={vistaVersion} />
+      <BuscadorMapa />
+      <AjustarVista
+        lotes={lotes}
+        selectedLoteId={selectedLoteId}
+        ubicacionCampo={ubicacionCampo}
+        vistaVersion={vistaVersion}
+      />
       <ControlDibujo activo={isDibujando} onPoligonoDibujado={onPoligonoDibujado} />
       <ControlEdicion lote={loteEnEdicion} onGeometriaChange={onGeometriaEditada} />
     </MapContainer>
