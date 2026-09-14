@@ -283,7 +283,8 @@ function CamposPage() {
           message={
             <>
               Estas por eliminar el campo{' '}
-              <span className="font-bold text-slate-950">{deletingCampo.nombre}</span>. Esta
+              <span className="font-bold text-slate-950">{deletingCampo.nombre}</span>. Tambien
+              se eliminaran <span className="font-semibold text-red-700">todos sus lotes</span>. Esta
               accion no se puede deshacer.
             </>
           }

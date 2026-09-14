@@ -20,6 +20,8 @@
 | 14/09/2026 | Ajustes finales: carga diferida de la página de lotes y corrección del texto de ayuda de edición. |
 | 14/09/2026 | Corrección en el backend (commit `c19425c` en `sprint2-backend-lotes`): validación topológica de polígonos con `ST_IsValid` en alta y edición. |
 | 14/09/2026 | Corrección de las observaciones restantes de lotes (`b298f85`) y de los errores generales detectados en la revisión del código (ramas `fix/correcciones-backend` y `fix/correcciones-frontend`), verificadas con pruebas de API y de navegador. |
+| 14/09/2026 | Ajuste pedido por el interesado: el `ENCARGADO` también puede eliminar lotes de su empresa, porque administra los campos y sus lotes (backend `57dcb45`). |
+| 14/09/2026 | Ajuste pedido por el interesado: solo el `ADMIN` elimina empresas y, al hacerlo, se eliminan en cascada sus usuarios, campos y lotes, productos y aeronaves. Al eliminar un campo también se eliminan sus lotes (backend `87cbf1d`). |
 
 ---
 
@@ -33,14 +35,14 @@ Página **Lotes** (`/lotes`), accesible para los roles `ADMIN` y `ENCARGADO`:
 - **Edición de datos:** nombre, campo y descripción mediante formulario.
 - **Edición de forma:** arrastre de vértices sobre el mapa (clic derecho elimina un vértice). Al guardar, el backend recalcula la superficie.
 - **Baja lógica y reactivación**, con confirmación para la baja.
-- **Eliminación permanente:** solo visible para `ADMIN` (el backend responde 403 al `ENCARGADO`).
+- **Eliminación permanente:** disponible para `ADMIN` y `ENCARGADO`, ya que el encargado administra los campos y sus lotes. El backend verifica que el lote pertenezca a la empresa del encargado.
 - Panel lateral con la lista de lotes sincronizada con el mapa (seleccionar en la lista centra el mapa en el lote).
 
 ### Relación con los criterios de aceptación de HU-03
 
 | Criterio | Cómo se cumple |
 |---|---|
-| CA-01: registrar, modificar y eliminar lotes | Alta por dibujo, edición de datos y de forma, baja lógica y eliminación (ADMIN). |
+| CA-01: registrar, modificar y eliminar lotes | Alta por dibujo, edición de datos y de forma, baja lógica y eliminación permanente. |
 | CA-02: cargar y visualizar información georreferenciada sobre mapas | Dibujo de polígonos con Geoman y visualización sobre mapa satelital; persistencia en PostGIS como GeoJSON. |
 | CA-03: lotes disponibles para planificación de rutas y órdenes | Los lotes quedan persistidos con geometría y superficie, asociados a un campo; la baja lógica permite excluirlos sin perder historial. |
 
@@ -120,7 +122,8 @@ Script con los mismos payloads que genera el frontend, autenticado como `ENCARGA
 | Editar datos (formulario) | ✅ |
 | Editar forma → recalcula superficie | ✅ 105,41 → 210,82 ha |
 | Dar de baja / reactivar | ✅ |
-| Encargado intenta eliminar | ✅ 403 |
+| Encargado intenta eliminar | ✅ 403 (regla inicial; luego se habilitó al encargado, ver §1) |
+| Encargado elimina un lote de su empresa / de otra empresa | ✅ 200 / 404 (tras el ajuste) |
 | Admin elimina / lote ya no existe | ✅ 200 / 404 |
 | Polígono autointersectado rechazado | ❌ inicialmente se guardaba con 0 ha → ✅ 400 tras la corrección (ver §6) |
 
@@ -142,7 +145,7 @@ Automatizada con Playwright sobre la aplicación en ejecución (Vite + backend):
 3. Alta → notificación "Lote creado correctamente (4.691,56 ha)". ✅
 4. Edición de forma arrastrando un vértice → "Forma del lote actualizada (5.437,62 ha)". ✅
 5. Baja con confirmación → el lote aparece "De baja". ✅
-6. El botón de eliminación no se muestra al `ENCARGADO`. ✅
+6. El `ENCARGADO` puede eliminar permanentemente un lote con confirmación. ✅
 7. Sin errores en la consola del navegador. ✅
 
 Los datos de prueba se eliminaron al finalizar.
@@ -157,7 +160,7 @@ Verificaciones adicionales: `eslint` sin errores en los archivos nuevos y `vite 
 2. ~~**Otras observaciones sobre el backend de lotes**~~ — **Resuelto** (commit `b298f85`): se validan y cierran también los huecos del polígono, `activo` acepta `"true"`/`"false"` y rechaza valores inválidos, se valida el tipo de `nombre`, `descripcion` y `campoId`, y la ruta `DELETE` quedó restringida a `ADMIN`.
 3. **Base compartida adelantada:** la migración de lotes ya está aplicada en Railway pero no en `main`. No ejecutar `prisma migrate dev` desde `main` hasta integrar la rama del backend.
 4. ~~**Error de lint previo** en `src/context/AutenticacionProvider.jsx`~~ — **Resuelto** en la rama `fix/correcciones-frontend`: el estado de la sesión se deriva del token en lugar de sincronizarse con `setState` dentro de un efecto.
-5. **Correcciones generales detectadas en la revisión** (ramas `fix/correcciones-backend` y `fix/correcciones-frontend`): permisos del `ENCARGADO` sobre usuarios, validaciones de datos, eliminación de empresas con datos asociados (409), manejo global de errores, límite de intentos de inicio de sesión y script para crear el primer `ADMIN`. El frontend de usuarios se alineó con las nuevas reglas.
+5. **Correcciones generales detectadas en la revisión** (ramas `fix/correcciones-backend` y `fix/correcciones-frontend`): permisos del `ENCARGADO` sobre usuarios, validaciones de datos, eliminación de empresas en cascada (solo `ADMIN`) y de campos junto con sus lotes, manejo global de errores, límite de intentos de inicio de sesión y script para crear el primer `ADMIN`. El frontend de usuarios se alineó con las nuevas reglas.
 6. **Integración:** según la Definition of Done, ambos PRs (frontend y backend) deben ser revisados por al menos un compañero antes de mergearse a `main`. Mergear primero el backend.
 
 ---
