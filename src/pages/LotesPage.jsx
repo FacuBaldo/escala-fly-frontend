@@ -9,8 +9,6 @@ import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
 import { getCampos } from '../api/camposApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
-import { ROLES } from '../auth/roles'
-import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
@@ -34,7 +32,6 @@ const iconButtonClassName =
   'flex h-8 w-8 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-50'
 
 function LotesPage() {
-  const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [campos, setCampos] = useState([])
   const [lotes, setLotes] = useState([])
@@ -54,7 +51,6 @@ function LotesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const isAdmin = usuario?.rol === ROLES.ADMIN
   const isModoVer = modo === MODOS.VER
 
   const notificarError = useCallback(
@@ -483,17 +479,15 @@ function LotesPage() {
                           <ArchiveRestore aria-hidden="true" size={16} />
                         </button>
                       )}
-                      {isAdmin && (
-                        <button
-                          aria-label={`Eliminar ${lote.nombre}`}
-                          className={`${iconButtonClassName} bg-red-50 text-red-700 hover:bg-red-100`}
-                          onClick={() => setLoteEliminar(lote)}
-                          title="Eliminar permanentemente"
-                          type="button"
-                        >
-                          <Trash2 aria-hidden="true" size={16} />
-                        </button>
-                      )}
+                      <button
+                        aria-label={`Eliminar ${lote.nombre}`}
+                        className={`${iconButtonClassName} bg-red-50 text-red-700 hover:bg-red-100`}
+                        onClick={() => setLoteEliminar(lote)}
+                        title="Eliminar permanentemente"
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" size={16} />
+                      </button>
                     </div>
                   )}
                 </li>
