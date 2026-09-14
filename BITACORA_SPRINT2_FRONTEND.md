@@ -18,6 +18,7 @@
 | 14/09/2026 | Se implementan la capa de API, el mapa, el formulario, la página `/lotes`, la ruta protegida y el ítem de menú. |
 | 14/09/2026 | Pruebas de integración contra el backend real (API y navegador). Se detecta que el backend acepta polígonos autointersectados (ver §6). |
 | 14/09/2026 | Ajustes finales: carga diferida de la página de lotes y corrección del texto de ayuda de edición. |
+| 14/09/2026 | Corrección en el backend (commit `c19425c` en `sprint2-backend-lotes`): validación topológica de polígonos con `ST_IsValid` en alta y edición. |
 
 ---
 
@@ -55,7 +56,7 @@ Página **Lotes** (`/lotes`), accesible para los roles `ADMIN` y `ENCARGADO`:
 ### 3.2. Geoman para dibujo y edición
 - Permite dibujar y editar vértices sin construir la interacción a mano.
 - Se usa en forma **programática** (sin su barra de herramientas) para que el flujo lo controle la página: botón "Dibujar lote", banner de instrucciones y botones Guardar / Cancelar.
-- Opción `allowSelfIntersection: false` en dibujo y edición: impide trazar polígonos que se cruzan a sí mismos, algo que el backend hoy no valida (§6).
+- Opción `allowSelfIntersection: false` en dibujo y edición: impide trazar polígonos que se cruzan a sí mismos. El backend además los rechaza (§6), de modo que la regla se aplica en ambas capas.
 
 ### 3.3. Mapas base
 - **Satelital (Esri World Imagery)** por defecto: permite reconocer los límites reales de los lotes. Gratuito y sin API key.
@@ -120,7 +121,18 @@ Script con los mismos payloads que genera el frontend, autenticado como `ENCARGA
 | Dar de baja / reactivar | ✅ |
 | Encargado intenta eliminar | ✅ 403 |
 | Admin elimina / lote ya no existe | ✅ 200 / 404 |
-| Polígono autointersectado rechazado | ❌ el backend lo guarda con 0 ha (ver §6) |
+| Polígono autointersectado rechazado | ❌ inicialmente se guardaba con 0 ha → ✅ 400 tras la corrección (ver §6) |
+
+Pruebas agregadas tras la corrección del backend:
+
+| Prueba | Resultado |
+|---|---|
+| Crear polígono en forma de "moño" | ✅ 400 · "El polígono del lote no puede cruzarse a sí mismo" |
+| Crear polígono sin superficie (vértices alineados) | ✅ 400 |
+| Crear polígono válido enviado como `Feature` | ✅ 201 · 105,41 ha |
+| Editar un lote a una forma de "moño" | ✅ 400 y la forma previa queda intacta |
+| Editar solo el nombre (sin geometría) | ✅ 200 |
+| Coordenadas no numéricas | ✅ 400 |
 
 ### 5.2. Prueba en navegador (Chrome, flujo completo de usuario)
 Automatizada con Playwright sobre la aplicación en ejecución (Vite + backend):
@@ -140,7 +152,7 @@ Verificaciones adicionales: `eslint` sin errores en los archivos nuevos y `vite 
 
 ## 6. Problemas detectados y pendientes
 
-1. **Backend acepta polígonos autointersectados** (forma de "moño"): los guarda con superficie 0. El frontend lo previene al dibujar, pero la API debería rechazarlos. Sugerencia: validar con `ST_IsValid` antes del `INSERT`/`UPDATE` y responder 400.
+1. ~~**Backend acepta polígonos autointersectados**~~ — **Resuelto** (commit `c19425c`). Los polígonos en forma de "moño" se guardaban con superficie 0. Ahora, antes del `INSERT`/`UPDATE`, se valida la geometría con `ST_IsValid` y se exige superficie mayor a cero; si no se cumple, la API responde 400 con un mensaje claro.
 2. **Otras observaciones sobre el backend** (para Martiniano): solo se valida el anillo exterior del polígono; `Boolean("false")` es `true` si `activo` llega como texto; `nombre.trim()` falla si `nombre` no es texto; la ruta `DELETE` admite `ENCARGADO` aunque el controlador lo rechaza.
 3. **Base compartida adelantada:** la migración de lotes ya está aplicada en Railway pero no en `main`. No ejecutar `prisma migrate dev` desde `main` hasta integrar la rama del backend.
 4. **Error de lint previo** en `src/context/AutenticacionProvider.jsx` (`react-hooks/set-state-in-effect`), ajeno a este sprint.
@@ -153,5 +165,5 @@ Verificaciones adicionales: `eslint` sin errores en los archivos nuevos y `vite 
 - **Riesgo RI-03 (falta de experiencia geoespacial):** se mitigó apoyándose en librerías maduras (PostGIS, Leaflet, Geoman) y en una guía de integración escrita por el responsable del backend, lo que permitió desarrollar el frontend en paralelo sin bloqueos. Esto responde a la mejora acordada en la retrospectiva del Sprint 1 (reducir dependencias entre tareas).
 - **Riesgo RI-09 (integración de módulos):** se validó la integración frontend–backend–PostGIS con pruebas automáticas antes del merge.
 - **Riesgo RI-10 (servicios de mapas):** se dejaron dos proveedores de mapa base intercambiables (Esri y OpenStreetMap).
-- **Calidad:** la prueba de integración detectó un defecto real en la validación de geometrías del backend; conviene registrarlo como tarea correctiva.
+- **Calidad:** la prueba de integración detectó un defecto real en la validación de geometrías del backend (polígonos autointersectados guardados con 0 ha). Se registró y corrigió dentro del mismo sprint, con pruebas que verifican la corrección.
 - **Evidencias para el informe:** capturas del mapa con lotes, del modo dibujo, del formulario y de la edición de vértices.
