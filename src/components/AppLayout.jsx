@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, X } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, Layers, MapPin, Package, Plane, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
@@ -21,6 +21,12 @@ const menuItems = [
     icon: MapPin,
     label: 'Campos',
     path: '/campos',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+  },
+  {
+    icon: Layers,
+    label: 'Lotes',
+    path: '/lotes',
     roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {
