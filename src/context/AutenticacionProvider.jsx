@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getSesionActual, iniciarSesion as iniciarSesionRequest } from '../api/autenticacionApi'
 import { CLAVE_TOKEN, CLAVE_USUARIO } from '../api/apiClient'
 import AutenticacionContext from './autenticacionContext'
@@ -21,27 +21,34 @@ const readStoredUsuario = () => {
 function AutenticacionProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(CLAVE_TOKEN))
   const [usuario, setUsuario] = useState(readStoredUsuario)
-  const [status, setStatus] = useState(() => (localStorage.getItem(CLAVE_TOKEN) ? 'loading' : 'anonymous'))
+  // Token cuya sesion ya fue confirmada contra el backend (/me o inicio de sesion)
+  const [tokenVerificado, setTokenVerificado] = useState(null)
 
-  const cerrarSesion = () => {
+  // El estado se deriva del token en lugar de sincronizarlo con setState dentro de un efecto
+  let status = 'anonymous'
+  if (token) {
+    status = tokenVerificado === token ? 'authenticated' : 'loading'
+  }
+
+  const cerrarSesion = useCallback(() => {
     localStorage.removeItem(CLAVE_TOKEN)
     localStorage.removeItem(CLAVE_USUARIO)
     setToken(null)
     setUsuario(null)
-    setStatus('anonymous')
-  }
+    setTokenVerificado(null)
+  }, [])
 
-  const iniciarSesion = async (credenciales) => {
+  const iniciarSesion = useCallback(async (credenciales) => {
     const data = await iniciarSesionRequest(credenciales)
 
     localStorage.setItem(CLAVE_TOKEN, data.token)
     localStorage.setItem(CLAVE_USUARIO, JSON.stringify(data.usuario))
     setToken(data.token)
     setUsuario(data.usuario)
-    setStatus('authenticated')
+    setTokenVerificado(data.token)
 
     return data.usuario
-  }
+  }, [])
 
   useEffect(() => {
     window.addEventListener('autenticacion:cerrar-sesion', cerrarSesion)
@@ -49,17 +56,15 @@ function AutenticacionProvider({ children }) {
     return () => {
       window.removeEventListener('autenticacion:cerrar-sesion', cerrarSesion)
     }
-  }, [])
+  }, [cerrarSesion])
 
   useEffect(() => {
-    if (!token) {
-      setStatus('anonymous')
+    if (!token || tokenVerificado === token) {
       return undefined
     }
 
     let isActive = true
 
-    setStatus('loading')
     getSesionActual()
       .then((usuarioActual) => {
         if (!isActive) {
@@ -68,7 +73,7 @@ function AutenticacionProvider({ children }) {
 
         localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuarioActual))
         setUsuario(usuarioActual)
-        setStatus('authenticated')
+        setTokenVerificado(token)
       })
       .catch((error) => {
         if (isActive && !error.cierreSesionPorAutenticacion) {
@@ -79,7 +84,7 @@ function AutenticacionProvider({ children }) {
     return () => {
       isActive = false
     }
-  }, [token])
+  }, [cerrarSesion, token, tokenVerificado])
 
   const value = useMemo(
     () => ({
@@ -89,7 +94,7 @@ function AutenticacionProvider({ children }) {
       token,
       usuario,
     }),
-    [status, token, usuario],
+    [cerrarSesion, iniciarSesion, status, token, usuario],
   )
 
   return <AutenticacionContext.Provider value={value}>{children}</AutenticacionContext.Provider>
