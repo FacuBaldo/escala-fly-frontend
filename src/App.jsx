@@ -56,7 +56,7 @@ function App() {
         }
       />
       <Route
-        path="/lotes"
+        path="/campos/:campoId/lotes"
         element={
           <ProtectedRoute roles={rolesOperativos}>
             <Suspense fallback={<PageLoader message="Cargando mapa..." />}>
@@ -65,6 +65,8 @@ function App() {
           </ProtectedRoute>
         }
       />
+      {/* Los lotes ahora se gestionan dentro de cada campo */}
+      <Route path="/lotes" element={<Navigate to="/campos" replace />} />
       <Route
         path="/productos"
         element={

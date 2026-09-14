@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Archive, ArchiveRestore, Check, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Archive, ArchiveRestore, ArrowLeft, Check, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
@@ -7,7 +8,7 @@ import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
-import { getCampos } from '../api/camposApi'
+import { getCampoById } from '../api/camposApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
@@ -32,10 +33,11 @@ const iconButtonClassName =
   'flex h-8 w-8 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-50'
 
 function LotesPage() {
+  const { campoId } = useParams()
+  const navigate = useNavigate()
   const { showToast } = useToast()
-  const [campos, setCampos] = useState([])
+  const [campo, setCampo] = useState(null)
   const [lotes, setLotes] = useState([])
-  const [campoFiltro, setCampoFiltro] = useState('')
   const [estadoFiltro, setEstadoFiltro] = useState(ESTADOS.TODOS)
   const [selectedLoteId, setSelectedLoteId] = useState(null)
   const [modo, setModo] = useState(MODOS.VER)
@@ -64,14 +66,10 @@ function LotesPage() {
     [showToast],
   )
 
-  const loadLotes = async (campoId, { ajustarVista = false } = {}) => {
+  const loadLotes = async () => {
     try {
-      const data = await getLotes(campoId || undefined)
+      const data = await getLotes(campoId)
       setLotes(data)
-
-      if (ajustarVista) {
-        setVistaVersion((version) => version + 1)
-      }
     } catch (requestError) {
       notificarError(requestError, 'No se pudieron cargar los lotes.')
     }
@@ -80,18 +78,26 @@ function LotesPage() {
   useEffect(() => {
     let isActive = true
 
-    Promise.all([getCampos(), getLotes()])
-      .then(([camposData, lotesData]) => {
+    Promise.all([getCampoById(campoId), getLotes(campoId)])
+      .then(([campoData, lotesData]) => {
         if (isActive) {
-          setCampos(camposData)
+          setCampo(campoData)
           setLotes(lotesData)
           setVistaVersion((version) => version + 1)
         }
       })
       .catch((requestError) => {
-        if (isActive) {
-          notificarError(requestError, 'No se pudieron cargar los lotes.')
+        if (!isActive) {
+          return
         }
+
+        if (requestError.response?.status === 404) {
+          showToast({ message: 'El campo no existe o no tenes acceso.', type: 'error' })
+          navigate('/campos', { replace: true })
+          return
+        }
+
+        notificarError(requestError, 'No se pudieron cargar los lotes.')
       })
       .finally(() => {
         if (isActive) {
@@ -102,7 +108,7 @@ function LotesPage() {
     return () => {
       isActive = false
     }
-  }, [notificarError])
+  }, [campoId, navigate, notificarError, showToast])
 
   const cancelarModo = useCallback(() => {
     setModo(MODOS.VER)
@@ -144,13 +150,6 @@ function LotesPage() {
     () => lotesVisibles.filter((lote) => lote.activo).reduce((total, lote) => total + (lote.superficie || 0), 0),
     [lotesVisibles],
   )
-
-  const handleCampoFiltroChange = async (event) => {
-    const campoId = event.target.value
-    setCampoFiltro(campoId)
-    setSelectedLoteId(null)
-    await loadLotes(campoId, { ajustarVista: true })
-  }
 
   const handleEstadoFiltroChange = (event) => {
     setEstadoFiltro(event.target.value)
@@ -205,7 +204,7 @@ function LotesPage() {
     try {
       const lote = isEditing
         ? await updateLote(editingLote.id, form)
-        : await createLote({ ...form, geometria: geometriaPendiente })
+        : await createLote({ ...form, campoId, geometria: geometriaPendiente })
 
       setIsFormOpen(false)
       setEditingLote(null)
@@ -217,7 +216,7 @@ function LotesPage() {
           : `Lote creado correctamente (${formatearSuperficie(lote.superficie)}).`,
         type: 'success',
       })
-      await loadLotes(campoFiltro)
+      await loadLotes()
     } catch (requestError) {
       notificarError(requestError, 'No se pudo guardar el lote.')
     } finally {
@@ -240,7 +239,7 @@ function LotesPage() {
         message: `Forma del lote actualizada (${formatearSuperficie(lote.superficie)}).`,
         type: 'success',
       })
-      await loadLotes(campoFiltro)
+      await loadLotes()
     } catch (requestError) {
       notificarError(requestError, 'No se pudo actualizar la forma del lote.')
     } finally {
@@ -258,7 +257,7 @@ function LotesPage() {
         message: activo ? 'Lote reactivado correctamente.' : 'Lote dado de baja correctamente.',
         type: 'success',
       })
-      await loadLotes(campoFiltro)
+      await loadLotes()
     } catch (requestError) {
       notificarError(requestError, 'No se pudo cambiar el estado del lote.')
     } finally {
@@ -278,7 +277,7 @@ function LotesPage() {
       setLoteEliminar(null)
       setSelectedLoteId(null)
       showToast({ message: 'Lote eliminado correctamente.', type: 'success' })
-      await loadLotes(campoFiltro)
+      await loadLotes()
     } catch (requestError) {
       notificarError(requestError, 'No se pudo eliminar el lote.')
     } finally {
@@ -286,48 +285,45 @@ function LotesPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !campo) {
     return (
       <AppLayout>
-        <PageLoader message="Cargando lotes..." />
+        <PageLoader message="Cargando lotes del campo..." />
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <Link
+        className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
+        to="/campos"
+      >
+        <ArrowLeft aria-hidden="true" size={16} />
+        Volver a campos
+      </Link>
+
       <PageHeader
         action={
           <button
             className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={campos.length === 0 || !isModoVer}
+            disabled={!isModoVer}
             onClick={iniciarDibujo}
-            title={campos.length === 0 ? 'Primero crea un campo' : undefined}
             type="button"
           >
             <Plus aria-hidden="true" size={18} />
             Dibujar lote
           </button>
         }
-        subtitle="Dibuja, visualiza y administra los lotes georreferenciados de cada campo."
-        title="Lotes"
+        subtitle={
+          campo.ubicacion
+            ? `${campo.ubicacion} · Dibuja, visualiza y administra los lotes georreferenciados del campo.`
+            : 'Dibuja, visualiza y administra los lotes georreferenciados del campo.'
+        }
+        title={`Lotes de ${campo.nombre}`}
       />
 
       <section className="mb-4 flex flex-wrap items-center gap-3">
-        <select
-          aria-label="Filtrar por campo"
-          className={selectClassName}
-          disabled={!isModoVer}
-          onChange={handleCampoFiltroChange}
-          value={campoFiltro}
-        >
-          <option value="">Todos los campos</option>
-          {campos.map((campo) => (
-            <option key={campo.id} value={campo.id}>
-              {campo.nombre}
-            </option>
-          ))}
-        </select>
 
         <select
           aria-label="Filtrar por estado"
@@ -389,6 +385,7 @@ function LotesPage() {
             onPoligonoDibujado={handlePoligonoDibujado}
             onSelectLote={setSelectedLoteId}
             selectedLoteId={selectedLoteId}
+            ubicacionCampo={campo.ubicacion}
             vistaVersion={vistaVersion}
           />
         </section>
@@ -401,7 +398,7 @@ function LotesPage() {
           <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
             {lotesVisibles.length === 0 && (
               <li className="px-4 py-6 text-center text-sm text-slate-500">
-                No hay lotes cargados. Usa "Dibujar lote" para crear el primero.
+                Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.
               </li>
             )}
 
@@ -504,11 +501,10 @@ function LotesPage() {
           title={editingLote ? 'Editar lote' : 'Nuevo lote'}
         >
           <LoteForm
-            campoIdInicial={campoFiltro}
-            campos={campos}
             editingLote={editingLote}
             isSaving={isSaving}
             key={editingLote?.id || 'nuevo-lote'}
+            nombreCampo={campo.nombre}
             onCancel={closeFormDialog}
             onSave={handleSaveForm}
           />
