@@ -16,8 +16,15 @@ const rolLabels = {
   CLIENTE: 'Cliente',
 }
 
-function UsuarioForm({ editingUsuario, empresas, isAdmin, isSaving, onCancel, onSave }) {
-  const rolesDisponibles = isAdmin ? ['ADMIN', 'ENCARGADO', 'PILOTO', 'CLIENTE'] : ['ENCARGADO', 'PILOTO', 'CLIENTE']
+const LONGITUD_MINIMA_CONTRASENA = 8
+
+function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = false, isSaving, onCancel, onSave }) {
+  // El backend no permite cambiar el propio rol; un ENCARGADO solo asigna pilotos y clientes
+  const rolesAsignables = isAdmin ? ['ADMIN', 'ENCARGADO', 'PILOTO', 'CLIENTE'] : ['PILOTO', 'CLIENTE']
+  const rolesDisponibles =
+    editingUsuario && !rolesAsignables.includes(editingUsuario.rol)
+      ? [editingUsuario.rol, ...rolesAsignables]
+      : rolesAsignables
   const [form, setForm] = useState(() =>
     editingUsuario
       ? {
@@ -91,9 +98,11 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isSaving, onCancel, on
           Rol
           <select
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            disabled={isPropioUsuario}
             name="rol"
             onChange={handleChange}
             required
+            title={isPropioUsuario ? 'No podes cambiar tu propio rol' : undefined}
             value={form.rol}
           >
             {rolesDisponibles.map((rol) => (
@@ -129,15 +138,18 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isSaving, onCancel, on
           <input
             autoComplete="new-password"
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            minLength={LONGITUD_MINIMA_CONTRASENA}
             name="contrasena"
             onChange={handleChange}
             required={!editingUsuario}
             type="password"
             value={form.contrasena}
           />
-          {editingUsuario && (
-            <span className="text-xs font-normal text-slate-500">Dejala vacia para mantener la contrasena actual.</span>
-          )}
+          <span className="text-xs font-normal text-slate-500">
+            {editingUsuario
+              ? `Dejala vacia para mantener la contrasena actual. Minimo ${LONGITUD_MINIMA_CONTRASENA} caracteres.`
+              : `Minimo ${LONGITUD_MINIMA_CONTRASENA} caracteres.`}
+          </span>
         </label>
 
         <div className="flex flex-wrap gap-2 pt-2">

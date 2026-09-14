@@ -19,6 +19,7 @@
 | 14/09/2026 | Pruebas de integración contra el backend real (API y navegador). Se detecta que el backend acepta polígonos autointersectados (ver §6). |
 | 14/09/2026 | Ajustes finales: carga diferida de la página de lotes y corrección del texto de ayuda de edición. |
 | 14/09/2026 | Corrección en el backend (commit `c19425c` en `sprint2-backend-lotes`): validación topológica de polígonos con `ST_IsValid` en alta y edición. |
+| 14/09/2026 | Corrección de las observaciones restantes de lotes (`b298f85`) y de los errores generales detectados en la revisión del código (ramas `fix/correcciones-backend` y `fix/correcciones-frontend`), verificadas con pruebas de API y de navegador. |
 
 ---
 
@@ -153,10 +154,11 @@ Verificaciones adicionales: `eslint` sin errores en los archivos nuevos y `vite 
 ## 6. Problemas detectados y pendientes
 
 1. ~~**Backend acepta polígonos autointersectados**~~ — **Resuelto** (commit `c19425c`). Los polígonos en forma de "moño" se guardaban con superficie 0. Ahora, antes del `INSERT`/`UPDATE`, se valida la geometría con `ST_IsValid` y se exige superficie mayor a cero; si no se cumple, la API responde 400 con un mensaje claro.
-2. **Otras observaciones sobre el backend** (para Martiniano): solo se valida el anillo exterior del polígono; `Boolean("false")` es `true` si `activo` llega como texto; `nombre.trim()` falla si `nombre` no es texto; la ruta `DELETE` admite `ENCARGADO` aunque el controlador lo rechaza.
+2. ~~**Otras observaciones sobre el backend de lotes**~~ — **Resuelto** (commit `b298f85`): se validan y cierran también los huecos del polígono, `activo` acepta `"true"`/`"false"` y rechaza valores inválidos, se valida el tipo de `nombre`, `descripcion` y `campoId`, y la ruta `DELETE` quedó restringida a `ADMIN`.
 3. **Base compartida adelantada:** la migración de lotes ya está aplicada en Railway pero no en `main`. No ejecutar `prisma migrate dev` desde `main` hasta integrar la rama del backend.
-4. **Error de lint previo** en `src/context/AutenticacionProvider.jsx` (`react-hooks/set-state-in-effect`), ajeno a este sprint.
-5. **Integración:** según la Definition of Done, ambos PRs (frontend y backend) deben ser revisados por al menos un compañero antes de mergearse a `main`. Mergear primero el backend.
+4. ~~**Error de lint previo** en `src/context/AutenticacionProvider.jsx`~~ — **Resuelto** en la rama `fix/correcciones-frontend`: el estado de la sesión se deriva del token en lugar de sincronizarse con `setState` dentro de un efecto.
+5. **Correcciones generales detectadas en la revisión** (ramas `fix/correcciones-backend` y `fix/correcciones-frontend`): permisos del `ENCARGADO` sobre usuarios, validaciones de datos, eliminación de empresas con datos asociados (409), manejo global de errores, límite de intentos de inicio de sesión y script para crear el primer `ADMIN`. El frontend de usuarios se alineó con las nuevas reglas.
+6. **Integración:** según la Definition of Done, ambos PRs (frontend y backend) deben ser revisados por al menos un compañero antes de mergearse a `main`. Mergear primero el backend.
 
 ---
 
