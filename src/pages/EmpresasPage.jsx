@@ -118,9 +118,14 @@ function EmpresasPage() {
     setIsDeleting(true)
 
     try {
-      await deleteEmpresa(deletingEmpresa.id)
+      const { eliminados } = await deleteEmpresa(deletingEmpresa.id)
       setDeletingEmpresa(null)
-      showToast({ message: 'Empresa eliminada correctamente.', type: 'success' })
+      showToast({
+        message: eliminados
+          ? `Empresa eliminada junto con ${eliminados.usuarios} usuarios, ${eliminados.campos} campos, ${eliminados.lotes} lotes, ${eliminados.productos} productos y ${eliminados.aeronaves} aeronaves.`
+          : 'Empresa eliminada correctamente.',
+        type: 'success',
+      })
       await loadEmpresas()
     } catch (requestError) {
       if (requestError.cierreSesionPorAutenticacion) {
@@ -271,6 +276,10 @@ function EmpresasPage() {
               Estas por eliminar a la empresa{' '}
               <span className="font-bold text-slate-950">
                 {deletingEmpresa.nombre}
+              </span>
+              . Tambien se eliminaran todos sus datos asociados:{' '}
+              <span className="font-semibold text-red-700">
+                usuarios, campos y lotes, productos y aeronaves
               </span>
               . Esta accion no se puede deshacer.
             </>

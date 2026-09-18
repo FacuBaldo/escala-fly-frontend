@@ -1,5 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import useAutenticacion from './context/useAutenticacion'
+import PageLoader from './components/PageLoader'
 import IniciarSesionPage from './pages/IniciarSesionPage'
 import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
@@ -11,6 +13,9 @@ import { ROLES, getDefaultRoute } from './auth/roles'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
+
+// El modulo de lotes carga Leaflet y Geoman; se separa del bundle principal
+const LotesPage = lazy(() => import('./pages/LotesPage'))
 
 function App() {
   const { token, usuario } = useAutenticacion()
@@ -50,6 +55,18 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/campos/:campoId/lotes"
+        element={
+          <ProtectedRoute roles={rolesOperativos}>
+            <Suspense fallback={<PageLoader message="Cargando mapa..." />}>
+              <LotesPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      {/* Los lotes ahora se gestionan dentro de cada campo */}
+      <Route path="/lotes" element={<Navigate to="/campos" replace />} />
       <Route
         path="/productos"
         element={

@@ -26,4 +26,10 @@ const deleteCampo = async (id) => {
   return response.data
 }
 
-export { createCampo, deleteCampo, getCampos, updateCampo }
+const getCampoById = async (id) => {
+  const response = await apiClient.get(`/campos/${id}`)
+
+  return response.data
+}
+
+export { createCampo, deleteCampo, getCampoById, getCampos, updateCampo }

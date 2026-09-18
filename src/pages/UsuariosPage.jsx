@@ -14,6 +14,8 @@ import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 
+const ROLES_GESTIONABLES_POR_ENCARGADO = [ROLES.PILOTO, ROLES.CLIENTE]
+
 function UsuariosPage() {
   const { usuario } = useAutenticacion()
   const { showToast } = useToast()
@@ -181,6 +183,15 @@ function UsuariosPage() {
   const getRolLabel = (rol) =>
     ({ ADMIN: 'Admin', ENCARGADO: 'Encargado', PILOTO: 'Piloto', CLIENTE: 'Cliente' })[rol] || rol
   const isAdmin = usuario?.rol === ROLES.ADMIN
+  const usuarioSesionId = usuario?.id
+
+  // Mismas reglas que el backend: un ENCARGADO gestiona pilotos y clientes y edita su propio perfil;
+  // nadie puede eliminar su propio usuario.
+  const puedeEditar = (usuarioItem) =>
+    isAdmin || usuarioItem.id === usuarioSesionId || ROLES_GESTIONABLES_POR_ENCARGADO.includes(usuarioItem.rol)
+  const puedeEliminar = (usuarioItem) =>
+    usuarioItem.id !== usuarioSesionId &&
+    (isAdmin || ROLES_GESTIONABLES_POR_ENCARGADO.includes(usuarioItem.rol))
 
   const columns = [
     {
@@ -217,24 +228,28 @@ function UsuariosPage() {
       cellClassName: 'text-center',
       render: (usuario) => (
         <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Editar a ${usuario.nombre} ${usuario.apellido}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(usuario)}
-            title="Editar usuario"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Eliminar a ${usuario.nombre} ${usuario.apellido}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(usuario)}
-            title="Eliminar usuario"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
+          {puedeEditar(usuario) && (
+            <button
+              aria-label={`Editar a ${usuario.nombre} ${usuario.apellido}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
+              onClick={() => openEditDialog(usuario)}
+              title="Editar usuario"
+              type="button"
+            >
+              <Pencil aria-hidden="true" size={17} />
+            </button>
+          )}
+          {puedeEliminar(usuario) && (
+            <button
+              aria-label={`Eliminar a ${usuario.nombre} ${usuario.apellido}`}
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
+              onClick={() => openDeleteDialog(usuario)}
+              title="Eliminar usuario"
+              type="button"
+            >
+              <Trash2 aria-hidden="true" size={17} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -283,6 +298,7 @@ function UsuariosPage() {
             editingUsuario={editingUsuario}
             empresas={empresas}
             isAdmin={isAdmin}
+            isPropioUsuario={editingUsuario?.id === usuarioSesionId}
             isSaving={isSaving}
             onCancel={closeDialog}
             onSave={handleSave}
