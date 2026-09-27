@@ -5,6 +5,18 @@ const PAIS_BUSQUEDA = 'ar'
 
 const aNumero = (texto) => Number(texto.replace(',', '.'))
 
+const nombreCortoLugar = (resultado) => {
+  const direccion = resultado.address || {}
+  const lugar = resultado.display_name.split(',')[0].trim()
+    .replace(/^(?:Municipio|Municipalidad|Departamento|Pedanía|Partido)\s+(?:de|del|de la)\s+/i, '')
+  const localidad = direccion.city || direccion.town || direccion.village || direccion.hamlet
+  const partes = [lugar, localidad, direccion.state || direccion.province].filter(Boolean)
+
+  return partes.filter((parte, indice) =>
+    partes.findIndex((otra) => otra.toLocaleLowerCase('es') === parte.toLocaleLowerCase('es')) === indice,
+  ).join(', ')
+}
+
 /**
  * Interpreta un texto como coordenadas "latitud, longitud" (el mismo orden que Google Maps).
  * Acepta "-31.4278, -62.0828", "-31.4278 -62.0828", "-31.4278;-62.0828" y "-31,4278; -62,0828".
@@ -37,6 +49,7 @@ const buscarLugares = async (consulta, { signal } = {}) => {
   const params = new URLSearchParams({
     q: consulta,
     format: 'jsonv2',
+    addressdetails: '1',
     limit: '5',
     countrycodes: PAIS_BUSQUEDA,
     'accept-language': 'es',
@@ -55,7 +68,7 @@ const buscarLugares = async (consulta, { signal } = {}) => {
 
     return {
       id: resultado.place_id,
-      nombre: resultado.display_name,
+      nombre: nombreCortoLugar(resultado),
       lat: Number(resultado.lat),
       lng: Number(resultado.lon),
       bounds: [

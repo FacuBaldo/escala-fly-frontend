@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, X } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, Package, Plane } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
@@ -39,7 +39,6 @@ const menuItems = [
 
 function AppLayout({ children }) {
   const { cerrarSesion, usuario } = useAutenticacion()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   )
@@ -48,13 +47,7 @@ function AppLayout({ children }) {
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
   const visibleMenuItems = menuItems.filter((item) => hasRole(usuario, item.roles))
 
-  const handleLogout = () => {
-    setIsMenuOpen(false)
-    cerrarSesion()
-  }
-
   const toggleSidebar = () => {
-    setIsMenuOpen(false)
     setIsSidebarOpen((currentValue) => !currentValue)
   }
 
@@ -75,28 +68,13 @@ function AppLayout({ children }) {
           <Menu aria-hidden="true" size={21} />
         </button>
 
-        <div className="relative">
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white transition hover:bg-emerald-800"
-            onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
-            type="button"
-          >
-            {iniciales}
-          </button>
-
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-3 w-48 rounded-lg border border-emerald-100 bg-white p-2 shadow-xl shadow-emerald-950/10">
-              <button
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50"
-                onClick={handleLogout}
-                type="button"
-              >
-                <LogOut aria-hidden="true" size={16} />
-                Cerrar sesion
-              </button>
-            </div>
-          )}
-        </div>
+        <span
+          aria-label={usuario?.email ? `Usuario: ${usuario.email}` : 'Usuario'}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-xs font-bold text-white"
+          title={usuario?.email}
+        >
+          {iniciales}
+        </span>
       </header>
 
       {isSidebarOpen && (
@@ -113,24 +91,15 @@ function AppLayout({ children }) {
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="relative flex h-16 shrink-0 items-center justify-center px-6">
+        <div className="flex h-16 shrink-0 items-center justify-center px-6">
           <img
             alt="Escala Fly"
             className="h-auto w-36 object-contain"
             src="/images/LogoDrawer.png"
           />
-          <button
-            aria-label="Cerrar menu lateral"
-            className="absolute right-4 flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-800 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-            title="Cerrar menu lateral"
-            type="button"
-          >
-            <X aria-hidden="true" size={20} />
-          </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-4 py-5">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-5">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname.startsWith(item.path)
@@ -138,6 +107,9 @@ function AppLayout({ children }) {
             return (
               <Link
                 to={item.path}
+                onClick={() => {
+                  if (window.innerWidth < 1024) setIsSidebarOpen(false)
+                }}
                 className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
                   isActive
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
@@ -151,6 +123,17 @@ function AppLayout({ children }) {
             )
           })}
         </nav>
+
+        <div className="shrink-0 border-t border-emerald-100 px-4 py-4">
+          <button
+            className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"
+            onClick={cerrarSesion}
+            type="button"
+          >
+            <LogOut aria-hidden="true" size={18} strokeWidth={2.2} />
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       <div

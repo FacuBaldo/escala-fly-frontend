@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Archive, ArchiveRestore, ArrowLeft, Check, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowLeft, Check, MapPin, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
@@ -29,8 +29,8 @@ const ESTADOS = {
 const selectClassName =
   'h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
 
-const iconButtonClassName =
-  'flex h-8 w-8 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-50'
+const loteActionClassName =
+  'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 
 function LotesPage() {
   const { campoId } = useParams()
@@ -315,33 +315,9 @@ function LotesPage() {
             Dibujar lote
           </button>
         }
-        subtitle={
-          campo.ubicacion
-            ? `${campo.ubicacion} · Dibuja, visualiza y administra los lotes georreferenciados del campo.`
-            : 'Dibuja, visualiza y administra los lotes georreferenciados del campo.'
-        }
+        subtitle="Dibuja, visualiza y administra los lotes georreferenciados del campo."
         title={`Lotes de ${campo.nombre}`}
       />
-
-      <section className="mb-4 flex flex-wrap items-center gap-3">
-
-        <select
-          aria-label="Filtrar por estado"
-          className={selectClassName}
-          disabled={!isModoVer}
-          onChange={handleEstadoFiltroChange}
-          value={estadoFiltro}
-        >
-          <option value={ESTADOS.TODOS}>Todos los estados</option>
-          <option value={ESTADOS.ACTIVOS}>Activos</option>
-          <option value={ESTADOS.INACTIVOS}>Dados de baja</option>
-        </select>
-
-        <p className="text-sm text-slate-500">
-          {lotesVisibles.length} {lotesVisibles.length === 1 ? 'lote' : 'lotes'} ·{' '}
-          <span className="font-semibold text-slate-700">{formatearSuperficie(superficieActiva)}</span> activas
-        </p>
-      </section>
 
       {!isModoVer && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -390,15 +366,37 @@ function LotesPage() {
           />
         </section>
 
-        <aside className="flex min-h-0 flex-col rounded-lg border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
-          <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-bold uppercase text-emerald-900">
-            Lotes
-          </h2>
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
+          <div className="border-b border-slate-100 px-4 py-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-base font-bold text-slate-950">Lotes</h2>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                {lotesVisibles.length} {lotesVisibles.length === 1 ? 'lote' : 'lotes'}
+              </span>
+            </div>
+            <select
+              aria-label="Filtrar por estado"
+              className={`${selectClassName} w-full`}
+              disabled={!isModoVer}
+              onChange={handleEstadoFiltroChange}
+              value={estadoFiltro}
+            >
+              <option value={ESTADOS.TODOS}>Todos los estados</option>
+              <option value={ESTADOS.ACTIVOS}>Activos</option>
+              <option value={ESTADOS.INACTIVOS}>Dados de baja</option>
+            </select>
 
-          <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+            <p className="mt-3 text-sm text-slate-500">
+              Superficie activa: <span className="font-semibold text-slate-900">{formatearSuperficie(superficieActiva)}</span>
+            </p>
+          </div>
+
+          <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-3">
             {lotesVisibles.length === 0 && (
-              <li className="px-4 py-6 text-center text-sm text-slate-500">
-                Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.
+              <li className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                {lotes.length === 0
+                  ? 'Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.'
+                  : 'No hay lotes con este estado.'}
               </li>
             )}
 
@@ -407,83 +405,92 @@ function LotesPage() {
 
               return (
                 <li
-                  className={`px-4 py-3 transition ${isSelected ? 'bg-amber-50' : 'hover:bg-slate-50'}`}
+                  className={`overflow-hidden rounded-lg border bg-white shadow-sm transition ${
+                    isSelected ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200 hover:border-emerald-300'
+                  }`}
                   key={lote.id}
                 >
                   <button
-                    className="w-full text-left disabled:cursor-not-allowed"
+                    aria-pressed={isSelected}
+                    className="w-full px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 disabled:cursor-not-allowed"
                     disabled={!isModoVer}
                     onClick={() => setSelectedLoteId(lote.id)}
                     type="button"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-950">{lote.nombre}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 break-words text-sm font-bold text-slate-950">{lote.nombre}</span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                           lote.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
                         }`}
                       >
                         {lote.activo ? 'Activo' : 'De baja'}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {lote.campoNombre} · {formatearSuperficie(lote.superficie)}
+                    <p className="mt-2 text-sm font-semibold text-emerald-800">
+                      {formatearSuperficie(lote.superficie)}
                     </p>
+                    {Number.isFinite(lote.latitud) && Number.isFinite(lote.longitud) && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                        <MapPin aria-hidden="true" className="shrink-0 text-slate-400" size={14} />
+                        <span>Lat {lote.latitud.toFixed(5)} · Lon {lote.longitud.toFixed(5)}</span>
+                      </p>
+                    )}
                     {lote.descripcion && (
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-500">{lote.descripcion}</p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{lote.descripcion}</p>
                     )}
                   </button>
 
                   {isSelected && isModoVer && (
-                    <div className="mt-3 flex gap-2">
+                    <div className="flex flex-wrap gap-1 border-t border-slate-100 px-3 py-2">
                       <button
                         aria-label={`Editar datos de ${lote.nombre}`}
-                        className={`${iconButtonClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
+                        className={`${loteActionClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
                         onClick={() => openEditDialog(lote)}
-                        title="Editar datos"
                         type="button"
                       >
-                        <Pencil aria-hidden="true" size={16} />
+                        <Pencil aria-hidden="true" size={15} />
+                        Datos
                       </button>
                       <button
                         aria-label={`Editar forma de ${lote.nombre}`}
-                        className={`${iconButtonClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
+                        className={`${loteActionClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
                         onClick={() => iniciarEdicionForma(lote)}
-                        title="Editar forma en el mapa"
                         type="button"
                       >
-                        <PenTool aria-hidden="true" size={16} />
+                        <PenTool aria-hidden="true" size={15} />
+                        Forma
                       </button>
                       {lote.activo ? (
                         <button
                           aria-label={`Dar de baja ${lote.nombre}`}
-                          className={`${iconButtonClassName} bg-amber-50 text-amber-800 hover:bg-amber-100`}
+                          className={`${loteActionClassName} bg-amber-50 text-amber-800 hover:bg-amber-100`}
                           onClick={() => setLoteBaja(lote)}
-                          title="Dar de baja"
                           type="button"
                         >
-                          <Archive aria-hidden="true" size={16} />
+                          <Archive aria-hidden="true" size={15} />
+                          Baja
                         </button>
                       ) : (
                         <button
                           aria-label={`Reactivar ${lote.nombre}`}
-                          className={`${iconButtonClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
+                          className={`${loteActionClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
                           disabled={isDeleting}
                           onClick={() => cambiarEstado(lote, true)}
-                          title="Reactivar"
                           type="button"
                         >
-                          <ArchiveRestore aria-hidden="true" size={16} />
+                          <ArchiveRestore aria-hidden="true" size={15} />
+                          Reactivar
                         </button>
                       )}
                       <button
                         aria-label={`Eliminar ${lote.nombre}`}
-                        className={`${iconButtonClassName} bg-red-50 text-red-700 hover:bg-red-100`}
+                        className={`${loteActionClassName} ml-auto bg-red-50 text-red-700 hover:bg-red-100`}
                         onClick={() => setLoteEliminar(lote)}
-                        title="Eliminar permanentemente"
                         type="button"
                       >
-                        <Trash2 aria-hidden="true" size={16} />
+                        <Trash2 aria-hidden="true" size={15} />
+                        Eliminar
                       </button>
                     </div>
                   )}

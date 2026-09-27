@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Layers, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowUpRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
 import DeleteDialog from '../components/DeleteDialog'
@@ -179,8 +179,15 @@ function CamposPage() {
       header: 'Nombre',
       cellClassName: 'font-semibold text-slate-950',
       render: (campo) => (
-        <Link className="transition hover:text-emerald-800 hover:underline" to={`/campos/${campo.id}/lotes`}>
-          {campo.nombre}
+        <Link
+          className="group inline-flex flex-col items-start gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          to={`/campos/${campo.id}/lotes`}
+        >
+          <span className="font-semibold text-slate-950 transition group-hover:text-emerald-800">{campo.nombre}</span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 group-hover:underline">
+            Ver mapa y lotes
+            <ArrowUpRight aria-hidden="true" size={14} />
+          </span>
         </Link>
       ),
     },
@@ -204,18 +211,10 @@ function CamposPage() {
     {
       key: 'actions',
       header: 'Acciones',
-      className: 'w-40 text-center',
+      className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (campo) => (
         <div className="flex justify-center gap-2">
-          <Link
-            aria-label={`Ver lotes de ${campo.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-700 text-white transition hover:bg-emerald-800"
-            title="Ver y crear lotes"
-            to={`/campos/${campo.id}/lotes`}
-          >
-            <Layers aria-hidden="true" size={17} />
-          </Link>
           <button
             aria-label={`Editar ${campo.nombre}`}
             className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
