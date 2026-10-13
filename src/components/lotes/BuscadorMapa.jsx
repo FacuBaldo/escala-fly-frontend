@@ -57,7 +57,7 @@ function BuscadorMapa() {
   }
 
   const handleBuscar = async (event) => {
-    event.preventDefault()
+    event?.preventDefault()
     const consulta = texto.trim()
 
     if (!consulta) {
@@ -135,6 +135,13 @@ function BuscadorMapa() {
       setResultados([])
       setMensaje('')
     }
+
+    // El buscador se usa dentro de formularios (pistas), por eso no es un <form>:
+    // Enter busca el lugar en vez de guardar el formulario que lo contiene.
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      handleBuscar()
+    }
   }
 
   return (
@@ -143,9 +150,8 @@ function BuscadorMapa() {
       onKeyDown={handleKeyDown}
       ref={contenedorRef}
     >
-      <form
+      <div
         className="flex items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-md"
-        onSubmit={handleBuscar}
         role="search"
       >
         <input
@@ -171,8 +177,9 @@ function BuscadorMapa() {
           aria-label="Buscar"
           className="flex h-8 w-8 items-center justify-center rounded bg-emerald-700 text-white transition hover:bg-emerald-800 disabled:opacity-70"
           disabled={isBuscando}
+          onClick={handleBuscar}
           title="Buscar"
-          type="submit"
+          type="button"
         >
           {isBuscando ? (
             <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
@@ -189,7 +196,7 @@ function BuscadorMapa() {
         >
           <LocateFixed aria-hidden="true" size={16} />
         </button>
-      </form>
+      </div>
 
       {resultados.length > 0 && (
         <ul className="mt-1 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-md">

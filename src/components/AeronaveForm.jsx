@@ -5,6 +5,8 @@ const emptyForm = {
   modelo: '',
   fabricante: '',
   estado: 'ACTIVA',
+  capacidadUtilLitros: '',
+  anchoAplicacionMetros: '',
   observaciones: '',
   empresaId: '',
 }
@@ -23,6 +25,8 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
           modelo: editingAeronave.modelo,
           fabricante: editingAeronave.fabricante || '',
           estado: editingAeronave.estado,
+          capacidadUtilLitros: editingAeronave.capacidadUtilLitros ?? '',
+          anchoAplicacionMetros: editingAeronave.anchoAplicacionMetros ?? '',
           observaciones: editingAeronave.observaciones || '',
           empresaId: editingAeronave.empresaId,
         }
@@ -40,7 +44,13 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    await onSave(form)
+
+    // Los campos numericos opcionales viajan como numero o como null
+    await onSave({
+      ...form,
+      capacidadUtilLitros: form.capacidadUtilLitros === '' ? null : Number(form.capacidadUtilLitros),
+      anchoAplicacionMetros: form.anchoAplicacionMetros === '' ? null : Number(form.anchoAplicacionMetros),
+    })
   }
 
   return (
@@ -121,6 +131,39 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
             value={form.fabricante}
           />
         </label>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Capacidad util de caldo (L)
+            <input
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              min={1}
+              name="capacidadUtilLitros"
+              onChange={handleChange}
+              placeholder="Ej: 1500"
+              step="any"
+              type="number"
+              value={form.capacidadUtilLitros}
+            />
+            <span className="text-xs font-normal text-slate-500">Litros que carga la tolva por vuelo.</span>
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Ancho de aplicacion (m)
+            <input
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              max={100}
+              min={1}
+              name="anchoAplicacionMetros"
+              onChange={handleChange}
+              placeholder="Ej: 25"
+              step="any"
+              type="number"
+              value={form.anchoAplicacionMetros}
+            />
+            <span className="text-xs font-normal text-slate-500">Ancho que cubre cada pasada.</span>
+          </label>
+        </div>
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Observaciones (Opcional)
