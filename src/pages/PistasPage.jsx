@@ -291,6 +291,7 @@ function PistasPage() {
       {isDialogOpen && (
         <FormDialog
           isSaving={isSaving}
+          maxWidth="max-w-2xl"
           onClose={closeDialog}
           title={editingPista ? 'Editar pista' : 'Agregar pista'}
         >

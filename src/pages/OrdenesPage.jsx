@@ -420,6 +420,7 @@ function OrdenesPage() {
       {isDialogOpen && (
         <FormDialog
           isSaving={isSaving}
+          maxWidth="max-w-3xl"
           onClose={() => {
             if (!isSaving) {
               setIsDialogOpen(false)

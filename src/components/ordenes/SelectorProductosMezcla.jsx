@@ -20,8 +20,7 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
 
   return (
     <div className="grid gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-700">Mezcla de productos (Opcional)</span>
+      <div className="flex justify-end">
         <button
           className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={productos.length === 0}
