@@ -1,53 +1,12 @@
 import { useState } from 'react'
 import { AlertTriangle, Droplets, Package, Plane, StickyNote } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
+import CampoConUnidad from '../formulario/CampoConUnidad'
+import SeccionFormulario from '../formulario/SeccionFormulario'
+import { claseAyuda, claseCampo, claseEtiqueta } from '../formulario/estilosFormulario'
 import { formatearSuperficie } from '../../utils/lotes'
 
-const inputClassName =
-  'w-full min-w-0 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
-
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '')
-
-/** Bloque con titulo para que el formulario se lea por pasos y no como una lista larga */
-const Seccion = ({ children, descripcion, icono: Icono, titulo }) => (
-  <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-    <header className="flex items-start gap-2.5">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-700 text-white">
-        <Icono aria-hidden="true" size={15} />
-      </span>
-      <div className="min-w-0">
-        <h3 className="text-sm font-bold text-slate-950">{titulo}</h3>
-        {descripcion && <p className="text-xs leading-5 text-slate-500">{descripcion}</p>}
-      </div>
-    </header>
-    {children}
-  </section>
-)
-
-/** Campo numerico con la unidad dentro del recuadro y una ayuda breve debajo */
-const CampoNumero = ({ ayuda, etiqueta, max, min, name, onChange, placeholder, unidad, value }) => (
-  <label className="grid content-start gap-1.5 text-sm font-semibold text-slate-700">
-    {etiqueta}
-    <span className="relative block">
-      <input
-        className={`campo-con-unidad h-11 pr-11 ${inputClassName}`}
-        max={max}
-        min={min}
-        name={name}
-        onChange={onChange}
-        placeholder={placeholder}
-        required
-        step="any"
-        type="number"
-        value={value}
-      />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-        {unidad}
-      </span>
-    </span>
-    <span className="text-xs font-normal leading-4 text-slate-500">{ayuda}</span>
-  </label>
-)
 
 function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave, productos }) {
   const [form, setForm] = useState(() => ({
@@ -120,16 +79,16 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <Seccion
+      <SeccionFormulario
         descripcion="Sobre que lote se aplica y con que avion."
         icono={Plane}
         titulo="Lote y aeronave"
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Lote
             <select
-              className={`h-11 ${inputClassName}`}
+              className={`h-11 ${claseCampo}`}
               disabled={Boolean(editingOrden)}
               name="loteId"
               onChange={handleChange}
@@ -147,16 +106,16 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
               ))}
             </select>
             {editingOrden && (
-              <span className="text-xs font-normal leading-4 text-slate-500">
+              <span className={claseAyuda}>
                 El lote no se puede cambiar en una orden existente.
               </span>
             )}
           </label>
 
-          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Aeronave
             <select
-              className={`h-11 ${inputClassName}`}
+              className={`h-11 ${claseCampo}`}
               name="aeronaveId"
               onChange={handleAeronaveChange}
               required
@@ -171,7 +130,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
                 </option>
               ))}
             </select>
-            <span className="text-xs font-normal leading-4 text-slate-500">
+            <span className={claseAyuda}>
               Completa sola el ancho y la capacidad de abajo.
             </span>
           </label>
@@ -186,15 +145,15 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             </span>
           </p>
         )}
-      </Seccion>
+      </SeccionFormulario>
 
-      <Seccion
+      <SeccionFormulario
         descripcion="Con estos tres datos se calcula la ruta y la cantidad de viajes."
         icono={Droplets}
         titulo="Parametros de vuelo"
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <CampoNumero
+          <CampoConUnidad
             ayuda="Franja que moja el avion en cada pasada."
             etiqueta="Ancho de aplicacion"
             max={100}
@@ -202,11 +161,12 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             name="anchoAplicacionMetros"
             onChange={handleChange}
             placeholder="25"
+            required
             unidad="m"
             value={form.anchoAplicacionMetros}
           />
 
-          <CampoNumero
+          <CampoConUnidad
             ayuda="Litros de caldo que se aplican por hectarea."
             etiqueta="Caldo por hectarea"
             max={500}
@@ -214,11 +174,12 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             name="litrosPorHectarea"
             onChange={handleChange}
             placeholder="20"
+            required
             unidad="L/ha"
             value={form.litrosPorHectarea}
           />
 
-          <CampoNumero
+          <CampoConUnidad
             ayuda="Cuanto caldo entra en la tolva del avion."
             etiqueta="Capacidad de la tolva"
             max={20000}
@@ -226,6 +187,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             name="capacidadUtilLitros"
             onChange={handleChange}
             placeholder="1500"
+            required
             unidad="L"
             value={form.capacidadUtilLitros}
           />
@@ -251,9 +213,9 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             )}
           </dl>
         )}
-      </Seccion>
+      </SeccionFormulario>
 
-      <Seccion
+      <SeccionFormulario
         descripcion="Opcional: que agroquimicos lleva la mezcla y en que dosis."
         icono={Package}
         titulo="Productos"
@@ -264,14 +226,14 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
           productos={productos}
           superficieHa={Number(loteElegido?.superficie || 0)}
         />
-      </Seccion>
+      </SeccionFormulario>
 
-      <Seccion descripcion="Opcional." icono={StickyNote} titulo="Fecha y observaciones">
+      <SeccionFormulario descripcion="Opcional." icono={StickyNote} titulo="Fecha y observaciones">
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Fecha prevista
             <input
-              className={`h-11 ${inputClassName}`}
+              className={`h-11 ${claseCampo}`}
               name="fechaPrevista"
               onChange={handleChange}
               type="date"
@@ -279,10 +241,10 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             />
           </label>
 
-          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Observaciones
             <input
-              className={`h-11 ${inputClassName}`}
+              className={`h-11 ${claseCampo}`}
               name="observaciones"
               onChange={handleChange}
               placeholder="Ej: aplicar a la manana"
@@ -291,7 +253,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             />
           </label>
         </div>
-      </Seccion>
+      </SeccionFormulario>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
         <button

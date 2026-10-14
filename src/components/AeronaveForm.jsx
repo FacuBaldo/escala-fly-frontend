@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { Droplets, Plane, StickyNote } from 'lucide-react'
+import CampoConUnidad from './formulario/CampoConUnidad'
+import SeccionFormulario from './formulario/SeccionFormulario'
+import { claseAyuda, claseCampo, claseEtiqueta } from './formulario/estilosFormulario'
 
 const emptyForm = {
   matricula: '',
@@ -54,25 +58,30 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
   }
 
   return (
-    <div>
-      <form className="grid gap-4" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+    <form className="grid gap-4" onSubmit={handleSubmit}>
+      <SeccionFormulario
+        descripcion="Como se identifica el avion y a que empresa pertenece."
+        icono={Plane}
+        titulo="Identificacion"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={claseEtiqueta}>
             Matricula
             <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 uppercase text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 uppercase ${claseCampo}`}
               name="matricula"
               onChange={handleChange}
+              placeholder="Ej: LV-ABC"
               required
               type="text"
               value={form.matricula}
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Estado
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="estado"
               onChange={handleChange}
               value={form.estado}
@@ -84,13 +93,38 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
               ))}
             </select>
           </label>
+
+          <label className={claseEtiqueta}>
+            Modelo
+            <input
+              className={`h-11 ${claseCampo}`}
+              name="modelo"
+              onChange={handleChange}
+              placeholder="Ej: Air Tractor AT-502"
+              required
+              type="text"
+              value={form.modelo}
+            />
+          </label>
+
+          <label className={claseEtiqueta}>
+            Fabricante (Opcional)
+            <input
+              className={`h-11 ${claseCampo}`}
+              name="fabricante"
+              onChange={handleChange}
+              placeholder="Ej: Air Tractor"
+              type="text"
+              value={form.fabricante}
+            />
+          </label>
         </div>
 
         {showEmpresa && (
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Empresa
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="empresaId"
               onChange={handleChange}
               required
@@ -107,95 +141,73 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
             </select>
           </label>
         )}
+      </SeccionFormulario>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Modelo
-          <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="modelo"
+      <SeccionFormulario
+        descripcion="Opcional: se usan para completar sola la orden de vuelo cuando se elige esta aeronave."
+        icono={Droplets}
+        titulo="Datos de aplicacion"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <CampoConUnidad
+            ayuda="Litros que carga la tolva por vuelo."
+            etiqueta="Capacidad util de caldo"
+            min={1}
+            name="capacidadUtilLitros"
             onChange={handleChange}
-            placeholder="Ej: Air Tractor AT-502"
-            required
-            type="text"
-            value={form.modelo}
+            placeholder="1500"
+            unidad="L"
+            value={form.capacidadUtilLitros}
           />
-        </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Fabricante (Opcional)
-          <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="fabricante"
+          <CampoConUnidad
+            ayuda="Ancho que cubre cada pasada."
+            etiqueta="Ancho de aplicacion"
+            max={100}
+            min={1}
+            name="anchoAplicacionMetros"
             onChange={handleChange}
-            type="text"
-            value={form.fabricante}
+            placeholder="25"
+            unidad="m"
+            value={form.anchoAplicacionMetros}
           />
-        </label>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-            Capacidad util de caldo (L)
-            <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              min={1}
-              name="capacidadUtilLitros"
-              onChange={handleChange}
-              placeholder="Ej: 1500"
-              step="any"
-              type="number"
-              value={form.capacidadUtilLitros}
-            />
-            <span className="text-xs font-normal text-slate-500">Litros que carga la tolva por vuelo.</span>
-          </label>
-
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
-            Ancho de aplicacion (m)
-            <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              max={100}
-              min={1}
-              name="anchoAplicacionMetros"
-              onChange={handleChange}
-              placeholder="Ej: 25"
-              step="any"
-              type="number"
-              value={form.anchoAplicacionMetros}
-            />
-            <span className="text-xs font-normal text-slate-500">Ancho que cubre cada pasada.</span>
-          </label>
         </div>
+      </SeccionFormulario>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Observaciones (Opcional)
+      <SeccionFormulario descripcion="Opcional." icono={StickyNote} titulo="Observaciones">
+        <label className={claseEtiqueta}>
+          <span className="sr-only">Observaciones</span>
           <textarea
-            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`py-2 ${claseCampo}`}
             name="observaciones"
             onChange={handleChange}
+            placeholder="Ej: habilitada para vuelo nocturno"
             rows={2}
             value={form.observaciones}
           />
+          <span className={claseAyuda}>Cualquier dato de la aeronave que convenga recordar.</span>
         </label>
+      </SeccionFormulario>
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <button
-            className="rounded-md bg-emerald-700 px-4 py-2 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isSaving}
-            type="submit"
-          >
-            {isSaving ? 'Guardando...' : editingAeronave ? 'Guardar cambios' : 'Crear aeronave'}
-          </button>
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+        <button
+          className="rounded-md bg-emerald-700 px-4 py-2 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isSaving}
+          type="submit"
+        >
+          {isSaving ? 'Guardando...' : editingAeronave ? 'Guardar cambios' : 'Crear aeronave'}
+        </button>
 
-          <button
-            className="rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isSaving}
-            onClick={onCancel}
-            type="button"
-          >
-            Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
+        <button
+          className="rounded-md border border-slate-200 bg-white px-4 py-2 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isSaving}
+          onClick={onCancel}
+          type="button"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   )
 }
 
