@@ -292,6 +292,7 @@ function AeronavesPage() {
       {isDialogOpen && (
         <FormDialog
           isSaving={isSaving}
+          maxWidth="max-w-2xl"
           onClose={closeDialog}
           title={editingAeronave ? 'Editar aeronave' : 'Agregar aeronave'}
         >

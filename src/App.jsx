@@ -8,14 +8,16 @@ import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
 import ProductosPage from './pages/ProductosPage'
 import AeronavesPage from './pages/AeronavesPage'
+import PistasPage from './pages/PistasPage'
 import SinAccesoPage from './pages/SinAccesoPage'
 import { ROLES, getDefaultRoute } from './auth/roles'
 import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
 
-// El modulo de lotes carga Leaflet y Geoman; se separa del bundle principal
+// Los modulos con mapa cargan Leaflet y Geoman; se separan del bundle principal
 const LotesPage = lazy(() => import('./pages/LotesPage'))
+const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 
 function App() {
   const { token, usuario } = useAutenticacion()
@@ -67,6 +69,24 @@ function App() {
       />
       {/* Los lotes ahora se gestionan dentro de cada campo */}
       <Route path="/lotes" element={<Navigate to="/campos" replace />} />
+      <Route
+        path="/pistas"
+        element={
+          <ProtectedRoute roles={rolesOperativos}>
+            <PistasPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ordenes"
+        element={
+          <ProtectedRoute roles={rolesOperativos}>
+            <Suspense fallback={<PageLoader message="Cargando ordenes..." />}>
+              <OrdenesPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/productos"
         element={

@@ -9,6 +9,7 @@ import PageLoader from '../components/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
 import { getCampoById } from '../api/camposApi'
+import { getPistas } from '../api/pistasApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
@@ -37,6 +38,7 @@ function LotesPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [campo, setCampo] = useState(null)
+  const [pistas, setPistas] = useState([])
   const [lotes, setLotes] = useState([])
   const [estadoFiltro, setEstadoFiltro] = useState(ESTADOS.TODOS)
   const [selectedLoteId, setSelectedLoteId] = useState(null)
@@ -78,11 +80,12 @@ function LotesPage() {
   useEffect(() => {
     let isActive = true
 
-    Promise.all([getCampoById(campoId), getLotes(campoId)])
-      .then(([campoData, lotesData]) => {
+    Promise.all([getCampoById(campoId), getLotes(campoId), getPistas()])
+      .then(([campoData, lotesData, pistasData]) => {
         if (isActive) {
           setCampo(campoData)
           setLotes(lotesData)
+          setPistas(pistasData)
           setVistaVersion((version) => version + 1)
         }
       })
@@ -514,6 +517,7 @@ function LotesPage() {
             nombreCampo={campo.nombre}
             onCancel={closeFormDialog}
             onSave={handleSaveForm}
+            pistas={pistas}
           />
         </FormDialog>
       )}
