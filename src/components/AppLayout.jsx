@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, MapPin, Package, Plane } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
@@ -24,9 +24,21 @@ const menuItems = [
     roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {
+    icon: TowerControl,
+    label: 'Pistas',
+    path: '/pistas',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+  },
+  {
     icon: Plane,
     label: 'Aeronaves',
     path: '/aeronaves',
+    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+  },
+  {
+    icon: ClipboardList,
+    label: 'Ordenes de vuelo',
+    path: '/ordenes',
     roles: [ROLES.ADMIN, ROLES.ENCARGADO],
   },
   {

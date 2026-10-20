@@ -14,3 +14,16 @@ body {
   margin: 0;
   min-width: 320px;
 }
+
+/* Campos numericos que muestran la unidad dentro del recuadro: las flechas del
+   navegador se superponen con el texto de la unidad. */
+.campo-con-unidad::-webkit-outer-spin-button,
+.campo-con-unidad::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.campo-con-unidad {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
