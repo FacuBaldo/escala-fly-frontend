@@ -198,6 +198,11 @@ function PistasPage() {
       setEditingPista(null)
       setUbicacionPendiente(null)
       setSelectedPistaId(pista.id)
+
+      // Una pista nueva nace activa: con el filtro en "dadas de baja" quedaria escondida
+      if (!isEditing && estadoFiltro === ESTADOS.INACTIVAS) {
+        setEstadoFiltro(ESTADOS.TODOS)
+      }
       showToast({
         message: isEditing ? 'Pista actualizada correctamente.' : 'Pista creada correctamente.',
         type: 'success',

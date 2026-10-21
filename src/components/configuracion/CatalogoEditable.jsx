@@ -162,7 +162,7 @@ function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualiz
 
           return (
             <li className="flex items-center gap-3 px-5 py-2.5" key={item.id}>
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">{item[principal.clave]}</span>
+              <span className="min-w-0 flex-1 break-words text-sm font-semibold text-slate-900">{item[principal.clave]}</span>
 
               {secundarios.map((campo) => (
                 <span
@@ -174,7 +174,7 @@ function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualiz
                 </span>
               ))}
 
-              <span className={`w-24 shrink-0 text-right text-xs ${enUso ? 'text-slate-600' : 'text-slate-400'}`}>
+              <span className={`w-20 shrink-0 text-right text-xs sm:w-24 ${enUso ? 'text-slate-600' : 'text-slate-400'}`}>
                 {item.cantidadProductos === 1 ? '1 producto' : `${item.cantidadProductos ?? 0} productos`}
               </span>
 

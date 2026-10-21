@@ -89,9 +89,16 @@ function ConfiguracionPage() {
     },
   }
 
+  // Nunca lanza: si la recarga falla despues de guardar, el guardado igual se hizo
+  // y no tiene que informarse como error de guardado.
   const recargar = async (clave) => {
     const catalogo = catalogos[clave]
-    catalogo.setItems(await catalogo.api.listar())
+
+    try {
+      catalogo.setItems(await catalogo.api.listar())
+    } catch (requestError) {
+      notificarError(requestError, 'No se pudo actualizar el listado. Recarga la pagina para ver los cambios.')
+    }
   }
 
   const crear = (clave) => async (datos) => {

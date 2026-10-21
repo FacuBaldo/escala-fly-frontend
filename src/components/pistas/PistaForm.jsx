@@ -51,7 +51,8 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
         <label className={claseEtiqueta}>
           Empresa
           <select
-            className={`h-11 ${claseCampo}`}
+            className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
+            disabled={Boolean(editingPista)}
             name="empresaId"
             onChange={handleChange}
             required
@@ -66,6 +67,10 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
               </option>
             ))}
           </select>
+          {/* El backend no mueve pistas entre empresas: sus lotes y ordenes quedarian apuntando a otra */}
+          {editingPista && (
+            <span className={claseAyuda}>Una pista no se puede pasar a otra empresa.</span>
+          )}
         </label>
       )}
 
