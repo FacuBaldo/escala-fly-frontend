@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Map, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -56,12 +56,23 @@ function OrdenesPage() {
     [showToast],
   )
 
+  // Cada pedido del listado lleva un numero: si se cambia el filtro dos veces
+  // rapido, una respuesta lenta no puede pisar a la del filtro mas nuevo.
+  const ultimoPedidoRef = useRef(0)
+
   const loadOrdenes = async (estado = estadoFiltro) => {
+    const pedido = ++ultimoPedidoRef.current
+
     try {
       const data = await getOrdenes(estado ? { estado } : {})
-      setOrdenes(data)
+
+      if (pedido === ultimoPedidoRef.current) {
+        setOrdenes(data)
+      }
     } catch (requestError) {
-      notificarError(requestError, 'No se pudieron cargar las ordenes.')
+      if (pedido === ultimoPedidoRef.current) {
+        notificarError(requestError, 'No se pudieron cargar las ordenes.')
+      }
     }
   }
 

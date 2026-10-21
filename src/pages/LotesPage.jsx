@@ -149,6 +149,13 @@ function LotesPage() {
     return lotes
   }, [estadoFiltro, lotes])
 
+  // El ADMIN recibe las pistas de todas las empresas: el lote solo puede usar las de
+  // la empresa de su campo (el backend rechaza las demas)
+  const pistasDelCampo = useMemo(
+    () => (campo ? pistas.filter((pista) => pista.empresaId === campo.empresaId) : []),
+    [campo, pistas],
+  )
+
   const superficieActiva = useMemo(
     () => lotesVisibles.filter((lote) => lote.activo).reduce((total, lote) => total + (lote.superficie || 0), 0),
     [lotesVisibles],
@@ -517,7 +524,7 @@ function LotesPage() {
             nombreCampo={campo.nombre}
             onCancel={closeFormDialog}
             onSave={handleSaveForm}
-            pistas={pistas}
+            pistas={pistasDelCampo}
           />
         </FormDialog>
       )}
