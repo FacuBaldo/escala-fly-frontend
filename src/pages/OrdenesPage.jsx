@@ -333,7 +333,7 @@ function OrdenesPage() {
           }
           subtitle={`${ordenDetalle.lote?.nombre || ''} · ${ordenDetalle.aeronave?.matricula || ''} · ${
             ordenDetalle.anchoAplicacionMetros
-          } m de ancho · ${ordenDetalle.litrosPorHectarea} L/ha`}
+          } m de ancho · ${ordenDetalle.litrosPorHectarea} L/ha · giros de ${ordenDetalle.radioGiroMetros} m`}
           title={`Ruta de la orden #${ordenDetalle.numero}`}
         />
 
@@ -345,7 +345,9 @@ function OrdenesPage() {
               <p className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0" size={16} />
                 <span>
-                  El lote o sus pistas se modificaron despues de generar esta ruta. Usa
+                  {plan.motivoDesactualizado === 'MODELO_ANTERIOR'
+                    ? 'Esta ruta se calculo antes de que se tuviera en cuenta el radio de giro del avion, asi que sus distancias quedan cortas. Usa'
+                    : 'El lote o sus pistas se modificaron despues de generar esta ruta. Usa'}
                   <span className="font-bold"> Regenerar ruta </span>
                   para actualizarla.
                 </span>

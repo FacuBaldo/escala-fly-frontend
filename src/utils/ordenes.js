@@ -14,6 +14,27 @@ const ESTILOS_ESTADO = {
   CANCELADA: 'bg-red-100 text-red-700',
 }
 
+// Patrones de trabajo sobre el lote (relevamiento, modulo 6)
+const PATRONES_VUELO = {
+  AUTOMATICO: {
+    nombre: 'Automatico',
+    descripcion: 'Calcula los dos patrones y elige el que menos vuela.',
+  },
+  IDA_Y_VUELTA: {
+    nombre: 'Ida y vuelta',
+    descripcion: 'Pasadas una al lado de la otra. Cada vuelta es un giro en pera.',
+  },
+  REDONDO: {
+    nombre: 'Redondo',
+    descripcion: 'Trabaja en circuito salteando pasadas, con giros abiertos hacia el mismo lado.',
+  },
+}
+
+const nombrePatron = (patron) => PATRONES_VUELO[patron]?.nombre || patron
+
+// Radio de giro que se propone si la aeronave no tiene uno cargado
+const RADIO_GIRO_POR_DEFECTO = 200
+
 // Un color por viaje, para distinguirlos cuando se ven todos juntos en el mapa
 const COLORES_VIAJE = ['#2563eb', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5', '#db2777']
 
@@ -44,10 +65,13 @@ const formatearFecha = (fecha) => {
 export {
   COLORES_VIAJE,
   ESTADOS_ORDEN,
+  PATRONES_VUELO,
+  RADIO_GIRO_POR_DEFECTO,
   ESTILOS_ESTADO,
   colorDeViaje,
   formatearDistancia,
   formatearFecha,
   formatearLitros,
   formatearNumero,
+  nombrePatron,
 }

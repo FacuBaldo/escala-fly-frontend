@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { AlertTriangle, Droplets, Package, Plane, StickyNote } from 'lucide-react'
+import { AlertTriangle, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
 import CampoConUnidad from '../formulario/CampoConUnidad'
 import SeccionFormulario from '../formulario/SeccionFormulario'
 import { claseAyuda, claseCampo, claseEtiqueta } from '../formulario/estilosFormulario'
 import { formatearSuperficie } from '../../utils/lotes'
+import { PATRONES_VUELO, RADIO_GIRO_POR_DEFECTO } from '../../utils/ordenes'
 
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '')
 
@@ -15,6 +16,8 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
     anchoAplicacionMetros: editingOrden?.anchoAplicacionMetros ?? '',
     litrosPorHectarea: editingOrden?.litrosPorHectarea ?? '',
     capacidadUtilLitros: editingOrden?.capacidadUtilLitros ?? '',
+    radioGiroMetros: editingOrden?.radioGiroMetros ?? '',
+    patron: editingOrden?.patron || 'AUTOMATICO',
     fechaPrevista: soloFecha(editingOrden?.fechaPrevista),
     observaciones: editingOrden?.observaciones || '',
   }))
@@ -42,6 +45,9 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
       aeronaveId,
       anchoAplicacionMetros: aeronave?.anchoAplicacionMetros ?? currentForm.anchoAplicacionMetros,
       capacidadUtilLitros: aeronave?.capacidadUtilLitros ?? currentForm.capacidadUtilLitros,
+      // El radio es de cada avion: si el elegido no lo tiene se propone el habitual,
+      // no el del avion que estaba elegido antes
+      radioGiroMetros: aeronave?.radioGiroMetros ?? RADIO_GIRO_POR_DEFECTO,
     }))
   }
 
@@ -53,6 +59,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
       anchoAplicacionMetros: Number(form.anchoAplicacionMetros),
       litrosPorHectarea: Number(form.litrosPorHectarea),
       capacidadUtilLitros: Number(form.capacidadUtilLitros),
+      radioGiroMetros: Number(form.radioGiroMetros),
       fechaPrevista: form.fechaPrevista || null,
       productos: filasMezcla
         .filter((fila) => fila.productoId)
@@ -213,6 +220,60 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
             )}
           </dl>
         )}
+      </SeccionFormulario>
+
+      <SeccionFormulario
+        descripcion="Como trabaja el avion sobre el lote. Los giros se calculan con su radio real."
+        icono={Route}
+        titulo="Patron y giros"
+      >
+        <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
+          <CampoConUnidad
+            ayuda="Lo trae la aeronave. Entre 150 y 300 m es lo habitual."
+            etiqueta="Radio de giro"
+            max={1000}
+            min={30}
+            name="radioGiroMetros"
+            onChange={handleChange}
+            placeholder={String(RADIO_GIRO_POR_DEFECTO)}
+            required
+            unidad="m"
+            value={form.radioGiroMetros}
+          />
+
+          <fieldset className="grid content-start gap-1.5">
+            <legend className="mb-1.5 text-sm font-semibold text-slate-700">Patron de trabajo</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {Object.entries(PATRONES_VUELO).map(([valor, { nombre, descripcion }]) => {
+                const elegido = form.patron === valor
+
+                return (
+                  <label
+                    className={`flex cursor-pointer flex-col gap-1 rounded-md border px-3 py-2 transition ${
+                      elegido
+                        ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-100'
+                        : 'border-slate-200 bg-white hover:border-emerald-300'
+                    }`}
+                    key={valor}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                      <input
+                        checked={elegido}
+                        className="accent-emerald-700"
+                        name="patron"
+                        onChange={handleChange}
+                        type="radio"
+                        value={valor}
+                      />
+                      {nombre}
+                    </span>
+                    <span className="text-xs leading-4 text-slate-500">{descripcion}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </fieldset>
+        </div>
       </SeccionFormulario>
 
       <SeccionFormulario

@@ -1,5 +1,5 @@
-import { Compass, Droplets, Layers, Navigation, Route } from 'lucide-react'
-import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero } from '../../utils/ordenes'
+import { Compass, Droplets, Layers, Navigation, Route, Sparkles } from 'lucide-react'
+import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero, nombrePatron } from '../../utils/ordenes'
 
 const Tarjeta = ({ icono: Icono, titulo, valor, detalle }) => (
   <div className="rounded-lg border border-emerald-100 bg-white px-3 py-2">
@@ -13,10 +13,27 @@ const Tarjeta = ({ icono: Icono, titulo, valor, detalle }) => (
 )
 
 /**
+ * En automatico el planificador calcula los dos patrones: devuelve cuanto menos
+ * vuela el elegido que el otro, o null si no hubo comparacion.
+ */
+const ahorroDelPatron = (plan) => {
+  const comparacion = plan.comparacionPatrones || {}
+  const otros = Object.entries(comparacion).filter(([patron]) => patron !== plan.patron)
+
+  if (plan.patronSolicitado !== 'AUTOMATICO' || otros.length === 0) {
+    return null
+  }
+
+  const [otroPatron, distanciaOtro] = otros[0]
+  return { otroPatron, metros: distanciaOtro - plan.distanciaTotalMetros }
+}
+
+/**
  * Resumen del plan, selector de viajes y ficha del viaje elegido.
  */
 function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
   const viaje = plan.viajes.find((item) => item.numero === viajeSeleccionado)
+  const ahorro = ahorroDelPatron(plan)
 
   return (
     <div className="grid gap-4">
@@ -29,18 +46,31 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
         />
         <Tarjeta icono={Droplets} titulo="Caldo total" valor={formatearLitros(plan.caldoTotalLitros)} />
         <Tarjeta
-          detalle={`${formatearDistancia(plan.distanciaAplicacionMetros)} aplicando`}
+          detalle={`${formatearDistancia(plan.distanciaAplicacionMetros)} aplicando · ${formatearDistancia(
+            plan.distanciaGirosMetros,
+          )} en giros`}
           icono={Route}
           titulo="Distancia"
           valor={formatearDistancia(plan.distanciaTotalMetros)}
         />
         <Tarjeta
-          detalle={`${formatearDistancia(plan.distanciaTrasladoMetros)} de traslado`}
+          detalle={`${nombrePatron(plan.patron)}${plan.radioGiroMetros ? ` · giros de ${formatearNumero(plan.radioGiroMetros, 0)} m` : ''}`}
           icono={Compass}
-          titulo="Rumbo"
+          titulo="Rumbo y patron"
           valor={`${formatearNumero(plan.orientacionGrados, 0)}°`}
         />
       </div>
+
+      {ahorro && ahorro.metros > 0 && (
+        <p className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
+          <Sparkles aria-hidden="true" className="mt-0.5 shrink-0" size={14} />
+          <span>
+            Se eligio <span className="font-bold">{nombrePatron(plan.patron)}</span>: vuela{' '}
+            <span className="font-bold">{formatearDistancia(ahorro.metros)} menos</span> que{' '}
+            {nombrePatron(ahorro.otroPatron).toLowerCase()}.
+          </span>
+        </p>
+      )}
 
       <div className="grid gap-2">
         <span className="text-sm font-semibold text-slate-700">
