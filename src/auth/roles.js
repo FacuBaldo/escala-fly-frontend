@@ -13,7 +13,7 @@ const getDefaultRoute = (usuario) => {
   }
 
   if ([ROLES.ADMIN, ROLES.ENCARGADO].includes(usuario.rol)) {
-    return '/usuarios'
+    return '/ordenes'
   }
 
   return RUTA_SIN_ACCESO

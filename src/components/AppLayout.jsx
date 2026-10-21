@@ -4,58 +4,36 @@ import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 
-const menuItems = [
-  {
-    icon: Users,
-    label: 'Usuarios',
-    path: '/usuarios',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: Building2,
-    label: 'Empresas',
-    path: '/empresas',
-    roles: [ROLES.ADMIN],
-  },
-  {
-    icon: MapPin,
-    label: 'Campos',
-    path: '/campos',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: TowerControl,
-    label: 'Pistas',
-    path: '/pistas',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: Plane,
-    label: 'Aeronaves',
-    path: '/aeronaves',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: ClipboardList,
-    label: 'Ordenes de vuelo',
-    path: '/ordenes',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: Package,
-    label: 'Productos',
-    path: '/productos',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-]
+const OPERATIVOS = [ROLES.ADMIN, ROLES.ENCARGADO]
 
-// Ajustes del sistema: van separados del resto, al final del menu
-const menuItemsSistema = [
+// Menu agrupado por area de trabajo: lo del dia a dia arriba y la administracion
+// abajo. Una seccion sin items visibles para el rol no se muestra.
+const seccionesMenu = [
   {
-    icon: Settings,
-    label: 'Configuracion',
-    path: '/configuracion',
-    roles: [ROLES.ADMIN],
+    titulo: 'Operacion',
+    items: [
+      { icon: ClipboardList, label: 'Ordenes', path: '/ordenes', roles: OPERATIVOS },
+      { icon: MapPin, label: 'Campos', path: '/campos', roles: OPERATIVOS },
+      { icon: TowerControl, label: 'Pistas', path: '/pistas', roles: OPERATIVOS },
+    ],
+  },
+  {
+    titulo: 'Recursos',
+    items: [
+      { icon: Plane, label: 'Aeronaves', path: '/aeronaves', roles: OPERATIVOS },
+      { icon: Package, label: 'Productos', path: '/productos', roles: OPERATIVOS },
+    ],
+  },
+  {
+    titulo: 'Administracion',
+    items: [
+      { icon: Users, label: 'Usuarios', path: '/usuarios', roles: OPERATIVOS },
+      { icon: Building2, label: 'Empresas', path: '/empresas', roles: [ROLES.ADMIN] },
+    ],
+  },
+  {
+    titulo: 'Sistema',
+    items: [{ icon: Settings, label: 'Configuracion', path: '/configuracion', roles: [ROLES.ADMIN] }],
   },
 ]
 
@@ -66,7 +44,7 @@ function MenuLink({ item, isActive, onNavigate }) {
     <Link
       to={item.path}
       onClick={onNavigate}
-      className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
+      className={`flex w-full items-center gap-3 rounded-md px-4 py-2.5 text-left text-sm font-bold transition ${
         isActive
           ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
           : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
@@ -86,8 +64,9 @@ function AppLayout({ children }) {
   const location = useLocation()
 
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
-  const visibleMenuItems = menuItems.filter((item) => hasRole(usuario, item.roles))
-  const visibleMenuItemsSistema = menuItemsSistema.filter((item) => hasRole(usuario, item.roles))
+  const seccionesVisibles = seccionesMenu
+    .map((seccion) => ({ ...seccion, items: seccion.items.filter((item) => hasRole(usuario, item.roles)) }))
+    .filter((seccion) => seccion.items.length > 0)
 
   const cerrarEnPantallaChica = () => {
     if (window.innerWidth < 1024) setIsSidebarOpen(false)
@@ -145,29 +124,24 @@ function AppLayout({ children }) {
           />
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-5">
-          {visibleMenuItems.map((item) => (
-            <MenuLink
-              isActive={location.pathname.startsWith(item.path)}
-              item={item}
-              key={item.label}
-              onNavigate={cerrarEnPantallaChica}
-            />
-          ))}
-
-          {visibleMenuItemsSistema.length > 0 && (
-            <div className="mt-4 space-y-1 border-t border-emerald-100 pt-4">
-              <p className="px-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistema</p>
-              {visibleMenuItemsSistema.map((item) => (
-                <MenuLink
-                  isActive={location.pathname.startsWith(item.path)}
-                  item={item}
-                  key={item.label}
-                  onNavigate={cerrarEnPantallaChica}
-                />
-              ))}
+        <nav aria-label="Menu principal" className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          {seccionesVisibles.map((seccion, indice) => (
+            <div className={indice > 0 ? 'mt-5' : ''} key={seccion.titulo}>
+              <p className="px-4 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                {seccion.titulo}
+              </p>
+              <div className="space-y-1">
+                {seccion.items.map((item) => (
+                  <MenuLink
+                    isActive={location.pathname.startsWith(item.path)}
+                    item={item}
+                    key={item.label}
+                    onNavigate={cerrarEnPantallaChica}
+                  />
+                ))}
+              </div>
             </div>
-          )}
+          ))}
         </nav>
 
         <div className="shrink-0 border-t border-emerald-100 px-4 py-4">
