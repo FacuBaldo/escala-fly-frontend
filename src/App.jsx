@@ -8,7 +8,7 @@ import EmpresasPage from './pages/EmpresasPage'
 import CamposPage from './pages/CamposPage'
 import ProductosPage from './pages/ProductosPage'
 import AeronavesPage from './pages/AeronavesPage'
-import PistasPage from './pages/PistasPage'
+import ConfiguracionPage from './pages/ConfiguracionPage'
 import SinAccesoPage from './pages/SinAccesoPage'
 import { ROLES, getDefaultRoute } from './auth/roles'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -17,6 +17,7 @@ import './App.css'
 
 // Los modulos con mapa cargan Leaflet y Geoman; se separan del bundle principal
 const LotesPage = lazy(() => import('./pages/LotesPage'))
+const PistasPage = lazy(() => import('./pages/PistasPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 
 function App() {
@@ -73,7 +74,9 @@ function App() {
         path="/pistas"
         element={
           <ProtectedRoute roles={rolesOperativos}>
-            <PistasPage />
+            <Suspense fallback={<PageLoader message="Cargando mapa..." />}>
+              <PistasPage />
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -92,6 +95,14 @@ function App() {
         element={
           <ProtectedRoute roles={rolesOperativos}>
             <ProductosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/configuracion"
+        element={
+          <ProtectedRoute roles={[ROLES.ADMIN]}>
+            <ConfiguracionPage />
           </ProtectedRoute>
         }
       />

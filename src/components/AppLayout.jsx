@@ -1,4 +1,4 @@
-import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList, Settings } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
@@ -49,6 +49,35 @@ const menuItems = [
   },
 ]
 
+// Ajustes del sistema: van separados del resto, al final del menu
+const menuItemsSistema = [
+  {
+    icon: Settings,
+    label: 'Configuracion',
+    path: '/configuracion',
+    roles: [ROLES.ADMIN],
+  },
+]
+
+function MenuLink({ item, isActive, onNavigate }) {
+  const Icon = item.icon
+
+  return (
+    <Link
+      to={item.path}
+      onClick={onNavigate}
+      className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
+        isActive
+          ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
+          : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+      }`}
+    >
+      <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
+      <span>{item.label}</span>
+    </Link>
+  )
+}
+
 function AppLayout({ children }) {
   const { cerrarSesion, usuario } = useAutenticacion()
   const [isSidebarOpen, setIsSidebarOpen] = useState(
@@ -58,6 +87,11 @@ function AppLayout({ children }) {
 
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
   const visibleMenuItems = menuItems.filter((item) => hasRole(usuario, item.roles))
+  const visibleMenuItemsSistema = menuItemsSistema.filter((item) => hasRole(usuario, item.roles))
+
+  const cerrarEnPantallaChica = () => {
+    if (window.innerWidth < 1024) setIsSidebarOpen(false)
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen((currentValue) => !currentValue)
@@ -112,28 +146,28 @@ function AppLayout({ children }) {
         </div>
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-5">
-          {visibleMenuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname.startsWith(item.path)
+          {visibleMenuItems.map((item) => (
+            <MenuLink
+              isActive={location.pathname.startsWith(item.path)}
+              item={item}
+              key={item.label}
+              onNavigate={cerrarEnPantallaChica}
+            />
+          ))}
 
-            return (
-              <Link
-                to={item.path}
-                onClick={() => {
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false)
-                }}
-                className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
-                  isActive
-                    ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
-                    : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-                key={item.label}
-              >
-                <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+          {visibleMenuItemsSistema.length > 0 && (
+            <div className="mt-4 space-y-1 border-t border-emerald-100 pt-4">
+              <p className="px-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Sistema</p>
+              {visibleMenuItemsSistema.map((item) => (
+                <MenuLink
+                  isActive={location.pathname.startsWith(item.path)}
+                  item={item}
+                  key={item.label}
+                  onNavigate={cerrarEnPantallaChica}
+                />
+              ))}
+            </div>
+          )}
         </nav>
 
         <div className="shrink-0 border-t border-emerald-100 px-4 py-4">

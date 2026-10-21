@@ -1,31 +1,34 @@
 import { useState } from 'react'
 
-const TIPOS_PRODUCTO = [
-  { value: 'HERBICIDA', label: 'Herbicida' },
-  { value: 'FUNGICIDA', label: 'Fungicida' },
-  { value: 'INSECTICIDA', label: 'Insecticida' },
-  { value: 'FERTILIZANTE', label: 'Fertilizante' },
-  { value: 'COADYUVANTE', label: 'Coadyuvante' },
-  { value: 'OTRO', label: 'Otro' },
-]
-
 const emptyForm = {
   nombre: '',
   marca: '',
-  tipo: 'HERBICIDA',
-  unidadMedida: '',
+  tipoId: '',
+  unidadMedidaId: '',
   descripcion: '',
   empresaId: '',
 }
 
-function ProductoForm({ editingProducto, empresas, isSaving, onCancel, onSave, showEmpresa = true }) {
+const avisoCatalogoVacio = (faltante) => `${faltante} Se cargan desde Configuracion, que administra el ADMIN.`
+
+/** El tipo y la unidad se eligen de los catalogos que administra el ADMIN en Configuracion */
+function ProductoForm({
+  editingProducto,
+  empresas,
+  isSaving,
+  onCancel,
+  onSave,
+  showEmpresa = true,
+  tipos = [],
+  unidades = [],
+}) {
   const [form, setForm] = useState(() =>
     editingProducto
       ? {
           nombre: editingProducto.nombre,
           marca: editingProducto.marca || '',
-          tipo: editingProducto.tipo || 'HERBICIDA',
-          unidadMedida: editingProducto.unidadMedida,
+          tipoId: editingProducto.tipoId,
+          unidadMedidaId: editingProducto.unidadMedidaId,
           descripcion: editingProducto.descripcion || '',
           empresaId: editingProducto.empresaId,
         }
@@ -89,17 +92,23 @@ function ProductoForm({ editingProducto, empresas, isSaving, onCancel, onSave, s
             Tipo / Categoria
             <select
               className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              name="tipo"
+              name="tipoId"
               onChange={handleChange}
               required
-              value={form.tipo}
+              value={form.tipoId}
             >
-              {TIPOS_PRODUCTO.map((tipo) => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
+              <option disabled value="">
+                Selecciona un tipo
+              </option>
+              {tipos.map((tipo) => (
+                <option key={tipo.id} value={tipo.id}>
+                  {tipo.nombre}
                 </option>
               ))}
             </select>
+            {tipos.length === 0 && (
+              <span className="text-xs font-normal text-amber-700">{avisoCatalogoVacio('No hay tipos de producto cargados.')}</span>
+            )}
           </label>
 
           <label className="grid gap-2 text-sm font-semibold text-slate-700">
@@ -117,15 +126,29 @@ function ProductoForm({ editingProducto, empresas, isSaving, onCancel, onSave, s
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
           Unidad de medida
-          <input
+          <select
             className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-            name="unidadMedida"
+            name="unidadMedidaId"
             onChange={handleChange}
-            placeholder="Ej: l/ha, kg/ha, cc/ha, litros, kg..."
             required
-            type="text"
-            value={form.unidadMedida}
-          />
+            value={form.unidadMedidaId}
+          >
+            <option disabled value="">
+              Selecciona una unidad
+            </option>
+            {unidades.map((unidad) => (
+              <option key={unidad.id} value={unidad.id}>
+                {unidad.nombre} ({unidad.abreviatura})
+              </option>
+            ))}
+          </select>
+          {unidades.length === 0 ? (
+            <span className="text-xs font-normal text-amber-700">{avisoCatalogoVacio('No hay unidades de medida cargadas.')}</span>
+          ) : (
+            <span className="text-xs font-normal text-slate-500">
+              Es la unidad en la que se expresa la dosis por hectarea en las ordenes de vuelo.
+            </span>
+          )}
         </label>
 
         <label className="grid gap-2 text-sm font-semibold text-slate-700">
@@ -163,4 +186,3 @@ function ProductoForm({ editingProducto, empresas, isSaving, onCancel, onSave, s
 }
 
 export default ProductoForm
-export { TIPOS_PRODUCTO }

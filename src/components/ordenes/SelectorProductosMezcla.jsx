@@ -87,7 +87,7 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
             {totalProducto > 0 && (
               <p className="col-span-3 -mt-1 text-xs text-slate-500">
                 {producto?.nombre}: {totalProducto.toLocaleString('es-AR', { maximumFractionDigits: 2 })}{' '}
-                {producto?.unidadMedida || ''} para todo el lote
+                {producto?.unidadMedida?.abreviatura || ''} para todo el lote
               </p>
             )}
           </div>
