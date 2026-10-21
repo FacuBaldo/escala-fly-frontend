@@ -6,12 +6,16 @@ import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import MapaPistas from '../components/pistas/MapaPistas'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
 import PistaForm from '../components/pistas/PistaForm'
 import { cambiarEstadoPista, createPista, deletePista, getPistas, updatePista } from '../api/pistasApi'
 import { getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 const MODOS = {
@@ -20,14 +24,16 @@ const MODOS = {
   MOVER: 'mover',
 }
 
+// Valores del filtro de estado en la direccion (?estado=activas); vacio es "todas"
 const ESTADOS = {
-  TODOS: 'todos',
   ACTIVAS: 'activas',
   INACTIVAS: 'inactivas',
 }
 
-const selectClassName =
-  'h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
+const OPCIONES_ESTADO = [
+  { valor: ESTADOS.ACTIVAS, etiqueta: 'Activas' },
+  { valor: ESTADOS.INACTIVAS, etiqueta: 'Dadas de baja' },
+]
 
 const pistaActionClassName =
   'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
@@ -39,7 +45,7 @@ function PistasPage() {
   const { showToast } = useToast()
   const [pistas, setPistas] = useState([])
   const [empresas, setEmpresas] = useState([])
-  const [estadoFiltro, setEstadoFiltro] = useState(ESTADOS.TODOS)
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', estado: '', empresa: '' })
   const [selectedPistaId, setSelectedPistaId] = useState(null)
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
@@ -129,20 +135,21 @@ function PistasPage() {
     }
   }, [cancelarModo, isModoVer])
 
-  const pistasVisibles = useMemo(() => {
-    if (estadoFiltro === ESTADOS.ACTIVAS) {
-      return pistas.filter((pista) => pista.activo)
-    }
+  const pistasVisibles = useMemo(
+    () =>
+      pistas.filter(
+        (pista) =>
+          coincideBusqueda(filtros.q, [pista.nombre, pista.descripcion]) &&
+          (filtros.estado !== ESTADOS.ACTIVAS || pista.activo) &&
+          (filtros.estado !== ESTADOS.INACTIVAS || !pista.activo) &&
+          (!filtros.empresa || pista.empresaId === filtros.empresa),
+      ),
+    [filtros, pistas],
+  )
 
-    if (estadoFiltro === ESTADOS.INACTIVAS) {
-      return pistas.filter((pista) => !pista.activo)
-    }
-
-    return pistas
-  }, [estadoFiltro, pistas])
-
-  const handleEstadoFiltroChange = (event) => {
-    setEstadoFiltro(event.target.value)
+  // Cambiar estado o empresa reencuadra el mapa; la busqueda no, para que no salte con cada letra
+  const handleFiltroQueReencuadra = (clave) => (valor) => {
+    cambiarFiltro(clave, valor)
     setSelectedPistaId(null)
     setVistaVersion((version) => version + 1)
   }
@@ -199,9 +206,9 @@ function PistasPage() {
       setUbicacionPendiente(null)
       setSelectedPistaId(pista.id)
 
-      // Una pista nueva nace activa: con el filtro en "dadas de baja" quedaria escondida
-      if (!isEditing && estadoFiltro === ESTADOS.INACTIVAS) {
-        setEstadoFiltro(ESTADOS.TODOS)
+      // Una pista nueva tiene que quedar a la vista aunque los filtros la escondieran
+      if (!isEditing && hayFiltros) {
+        limpiarFiltros()
       }
       showToast({
         message: isEditing ? 'Pista actualizada correctamente.' : 'Pista creada correctamente.',
@@ -358,17 +365,35 @@ function PistasPage() {
                 {pistasVisibles.length} {pistasVisibles.length === 1 ? 'pista' : 'pistas'}
               </span>
             </div>
-            <select
-              aria-label="Filtrar por estado"
-              className={`${selectClassName} w-full`}
-              disabled={!isModoVer}
-              onChange={handleEstadoFiltroChange}
-              value={estadoFiltro}
-            >
-              <option value={ESTADOS.TODOS}>Todos los estados</option>
-              <option value={ESTADOS.ACTIVAS}>Activas</option>
-              <option value={ESTADOS.INACTIVAS}>Dadas de baja</option>
-            </select>
+            <div className="grid gap-2">
+              <BuscadorFiltro
+                disabled={!isModoVer}
+                etiqueta="Buscar pistas"
+                onChange={(valor) => cambiarFiltro('q', valor)}
+                placeholder="Buscar por nombre"
+                valor={filtros.q}
+              />
+              <FiltroSelect
+                className="w-full"
+                disabled={!isModoVer}
+                etiqueta="Filtrar por estado"
+                onChange={handleFiltroQueReencuadra('estado')}
+                opciones={OPCIONES_ESTADO}
+                todos="Todos los estados"
+                valor={filtros.estado}
+              />
+              {isAdmin && (
+                <FiltroSelect
+                  className="w-full"
+                  disabled={!isModoVer}
+                  etiqueta="Filtrar por empresa"
+                  onChange={handleFiltroQueReencuadra('empresa')}
+                  opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+                  todos="Todas las empresas"
+                  valor={filtros.empresa}
+                />
+              )}
+            </div>
 
             <p className="mt-3 text-sm text-slate-500">
               Activas: <span className="font-semibold text-slate-900">{cantidadActivas}</span>
@@ -378,9 +403,16 @@ function PistasPage() {
           <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-3">
             {pistasVisibles.length === 0 && (
               <li className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-                {pistas.length === 0
-                  ? 'Todavia no hay pistas. Busca la zona en el mapa y usa "Marcar pista" para cargar la primera.'
-                  : 'No hay pistas con este estado.'}
+                {pistas.length === 0 ? (
+                  'Todavia no hay pistas. Busca la zona en el mapa y usa "Marcar pista" para cargar la primera.'
+                ) : (
+                  <>
+                    No hay pistas con estos filtros.{' '}
+                    <button className="font-bold text-emerald-800 hover:underline" onClick={limpiarFiltros} type="button">
+                      Limpiar filtros
+                    </button>
+                  </>
+                )}
               </li>
             )}
 

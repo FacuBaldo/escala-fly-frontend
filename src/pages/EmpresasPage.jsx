@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -6,17 +6,23 @@ import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import SinResultados from '../components/filtros/SinResultados'
 import EmpresaForm from '../components/EmpresaForm'
 import { createEmpresa, deleteEmpresa, getEmpresas, updateEmpresa } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function EmpresasPage() {
   const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [empresas, setEmpresas] = useState([])
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '' })
   const [editingEmpresa, setEditingEmpresa] = useState(null)
   const [deletingEmpresa, setDeletingEmpresa] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -220,6 +226,11 @@ function EmpresasPage() {
     },
   ]
 
+  const empresasVisibles = useMemo(
+    () => empresas.filter((empresa) => coincideBusqueda(filtros.q, [empresa.nombre, empresa.email, empresa.telefono])),
+    [empresas, filtros],
+  )
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -245,11 +256,20 @@ function EmpresasPage() {
         title="Empresas"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={empresas.length} visibles={empresasVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar empresas"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre, email o telefono"
+          valor={filtros.q}
+        />
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay empresas cargadas."
+        emptyMessage={<SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay empresas cargadas." onLimpiar={limpiarFiltros} />}
         getRowKey={(empresa) => empresa.id}
-        rows={empresas}
+        rows={empresasVisibles}
       />
 
       {isDialogOpen && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -6,12 +6,18 @@ import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import UsuarioForm from '../components/UsuarioForm'
 import { getEmpresas } from '../api/empresasApi'
 import { createUsuario, deleteUsuario, getUsuarios, updateUsuario } from '../api/usuariosApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 const ROLES_GESTIONABLES_POR_ENCARGADO = [ROLES.PILOTO, ROLES.CLIENTE]
@@ -183,6 +189,22 @@ function UsuariosPage() {
   const getRolLabel = (rol) =>
     ({ ADMIN: 'Admin', ENCARGADO: 'Encargado', PILOTO: 'Piloto', CLIENTE: 'Cliente' })[rol] || rol
   const isAdmin = usuario?.rol === ROLES.ADMIN
+
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', rol: '', empresa: '' })
+
+  const usuariosVisibles = useMemo(
+    () =>
+      usuarios.filter(
+        (usuarioItem) =>
+          coincideBusqueda(filtros.q, [usuarioItem.nombre, usuarioItem.apellido, usuarioItem.email]) &&
+          (!filtros.rol || usuarioItem.rol === filtros.rol) &&
+          (!filtros.empresa || usuarioItem.empresaId === filtros.empresa),
+      ),
+    [filtros, usuarios],
+  )
+
+  // El encargado no ve administradores en su lista, asi que no se le ofrece ese rol
+  const rolesFiltrables = Object.values(ROLES).filter((rol) => isAdmin || rol !== ROLES.ADMIN)
   const usuarioSesionId = usuario?.id
 
   // Mismas reglas que el backend: un ENCARGADO gestiona pilotos y clientes y edita su propio perfil;
@@ -280,11 +302,36 @@ function UsuariosPage() {
         title="Usuarios"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={usuarios.length} visibles={usuariosVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar usuarios"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre o email"
+          valor={filtros.q}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por rol"
+          onChange={(valor) => cambiarFiltro('rol', valor)}
+          opciones={rolesFiltrables.map((rol) => ({ valor: rol, etiqueta: getRolLabel(rol) }))}
+          todos="Todos los roles"
+          valor={filtros.rol}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay usuarios cargados."
+        emptyMessage={<SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay usuarios cargados." onLimpiar={limpiarFiltros} />}
         getRowKey={(usuario) => usuario.id}
-        rows={usuarios}
+        rows={usuariosVisibles}
       />
 
       {isDialogOpen && (

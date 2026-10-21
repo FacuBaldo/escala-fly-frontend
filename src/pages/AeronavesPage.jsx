@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -6,12 +6,18 @@ import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import AeronaveForm from '../components/AeronaveForm'
 import { createAeronave, deleteAeronave, getAeronaves, updateAeronave } from '../api/aeronavesApi'
 import { getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 const estadoBadgeClasses = {
@@ -184,6 +190,19 @@ function AeronavesPage() {
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', estado: '', empresa: '' })
+
+  const aeronavesVisibles = useMemo(
+    () =>
+      aeronaves.filter(
+        (aeronave) =>
+          coincideBusqueda(filtros.q, [aeronave.matricula, aeronave.modelo, aeronave.fabricante]) &&
+          (!filtros.estado || aeronave.estado === filtros.estado) &&
+          (!filtros.empresa || aeronave.empresaId === filtros.empresa),
+      ),
+    [aeronaves, filtros],
+  )
+
   const columns = [
     {
       key: 'matricula',
@@ -282,11 +301,38 @@ function AeronavesPage() {
         title="Aeronaves"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={aeronaves.length} visibles={aeronavesVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar aeronaves"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por matricula, modelo o fabricante"
+          valor={filtros.q}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por estado"
+          onChange={(valor) => cambiarFiltro('estado', valor)}
+          opciones={Object.entries(estadoLabels).map(([valor, etiqueta]) => ({ valor, etiqueta }))}
+          todos="Todos los estados"
+          valor={filtros.estado}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay aeronaves cargadas."
+        emptyMessage={
+          <SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay aeronaves cargadas." onLimpiar={limpiarFiltros} />
+        }
         getRowKey={(aeronave) => aeronave.id}
-        rows={aeronaves}
+        rows={aeronavesVisibles}
       />
 
       {isDialogOpen && (

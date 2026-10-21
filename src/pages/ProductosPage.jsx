@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -7,12 +7,18 @@ import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import ProductoForm from '../components/ProductoForm'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../api/productosApi'
 import { getTiposProducto, getUnidadesMedida } from '../api/catalogosApi'
 import { getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function ProductosPage() {
@@ -195,6 +201,20 @@ function ProductosPage() {
 
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', tipo: '', unidad: '', empresa: '' })
+
+  const productosVisibles = useMemo(
+    () =>
+      productos.filter(
+        (producto) =>
+          coincideBusqueda(filtros.q, [producto.nombre, producto.marca]) &&
+          (!filtros.tipo || producto.tipoId === filtros.tipo) &&
+          (!filtros.unidad || producto.unidadMedidaId === filtros.unidad) &&
+          (!filtros.empresa || producto.empresaId === filtros.empresa),
+      ),
+    [filtros, productos],
+  )
+
   const columns = [
     {
       key: 'nombre',
@@ -294,11 +314,45 @@ function ProductosPage() {
         title="Productos"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={productos.length} visibles={productosVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar productos"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre o marca"
+          valor={filtros.q}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por tipo"
+          onChange={(valor) => cambiarFiltro('tipo', valor)}
+          opciones={tipos.map((tipo) => ({ valor: tipo.id, etiqueta: tipo.nombre }))}
+          todos="Todos los tipos"
+          valor={filtros.tipo}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por unidad de medida"
+          onChange={(valor) => cambiarFiltro('unidad', valor)}
+          opciones={unidades.map((unidad) => ({ valor: unidad.id, etiqueta: `${unidad.nombre} (${unidad.abreviatura})` }))}
+          todos="Todas las unidades"
+          valor={filtros.unidad}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay productos cargados."
+        emptyMessage={
+          <SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay productos cargados." onLimpiar={limpiarFiltros} />
+        }
         getRowKey={(producto) => producto.id}
-        rows={productos}
+        rows={productosVisibles}
       />
 
       {isDialogOpen && (

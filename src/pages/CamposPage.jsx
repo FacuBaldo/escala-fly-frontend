@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
@@ -7,12 +7,18 @@ import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import CampoForm from '../components/CampoForm'
 import { createCampo, deleteCampo, getCampos, updateCampo } from '../api/camposApi'
 import { getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function CamposPage() {
@@ -173,6 +179,18 @@ function CamposPage() {
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', empresa: '' })
+
+  const camposVisibles = useMemo(
+    () =>
+      campos.filter(
+        (campo) =>
+          coincideBusqueda(filtros.q, [campo.nombre, campo.ubicacion]) &&
+          (!filtros.empresa || campo.empresaId === filtros.empresa),
+      ),
+    [campos, filtros],
+  )
+
   const columns = [
     {
       key: 'nombre',
@@ -265,11 +283,29 @@ function CamposPage() {
         title="Campos"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={campos.length} visibles={camposVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar campos"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre o ubicacion"
+          valor={filtros.q}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay campos cargados."
+        emptyMessage={<SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay campos cargados." onLimpiar={limpiarFiltros} />}
         getRowKey={(campo) => campo.id}
-        rows={campos}
+        rows={camposVisibles}
       />
 
       {isDialogOpen && (

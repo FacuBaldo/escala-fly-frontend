@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Map, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -9,11 +9,18 @@ import PageLoader from '../components/PageLoader'
 import OrdenForm from '../components/ordenes/OrdenForm'
 import MapaPlanVuelo from '../components/ordenes/MapaPlanVuelo'
 import PanelPlan from '../components/ordenes/PanelPlan'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroFecha from '../components/filtros/FiltroFecha'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import { createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
 import { getLotes } from '../api/lotesApi'
 import { getAeronaves } from '../api/aeronavesApi'
 import { getProductos } from '../api/productosApi'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
 import { ESTADOS_ORDEN, ESTILOS_ESTADO, formatearDistancia, formatearFecha, formatearLitros } from '../utils/ordenes'
@@ -21,16 +28,12 @@ import { ESTADOS_ORDEN, ESTILOS_ESTADO, formatearDistancia, formatearFecha, form
 const iconButtonClassName =
   'flex h-9 w-9 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-50'
 
-const selectClassName =
-  'h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
-
 function OrdenesPage() {
   const { showToast } = useToast()
   const [ordenes, setOrdenes] = useState([])
   const [lotes, setLotes] = useState([])
   const [aeronaves, setAeronaves] = useState([])
   const [productos, setProductos] = useState([])
-  const [estadoFiltro, setEstadoFiltro] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -56,15 +59,50 @@ function OrdenesPage() {
     [showToast],
   )
 
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({
+    q: '',
+    estado: '',
+    aeronave: '',
+    desde: '',
+    hasta: '',
+  })
+
+  // Se filtra en el navegador sobre la lista completa: es instantaneo y no repite
+  // pedidos al servidor por cada cambio de filtro
+  const ordenesVisibles = useMemo(
+    () =>
+      ordenes.filter((orden) => {
+        const fecha = orden.fechaPrevista ? String(orden.fechaPrevista).slice(0, 10) : ''
+        const filtraPorFecha = filtros.desde || filtros.hasta
+
+        return (
+          coincideBusqueda(filtros.q, [
+            `#${orden.numero}`,
+            orden.lote?.nombre,
+            orden.lote?.campo?.nombre,
+            orden.aeronave?.matricula,
+            orden.aeronave?.modelo,
+          ]) &&
+          (!filtros.estado || orden.estado === filtros.estado) &&
+          (!filtros.aeronave || orden.aeronaveId === filtros.aeronave) &&
+          // Con un rango de fechas, las ordenes sin fecha prevista no entran
+          (!filtraPorFecha || Boolean(fecha)) &&
+          (!filtros.desde || fecha >= filtros.desde) &&
+          (!filtros.hasta || fecha <= filtros.hasta)
+        )
+      }),
+    [filtros, ordenes],
+  )
+
   // Cada pedido del listado lleva un numero: si se cambia el filtro dos veces
   // rapido, una respuesta lenta no puede pisar a la del filtro mas nuevo.
   const ultimoPedidoRef = useRef(0)
 
-  const loadOrdenes = async (estado = estadoFiltro) => {
+  const loadOrdenes = async () => {
     const pedido = ++ultimoPedidoRef.current
 
     try {
-      const data = await getOrdenes(estado ? { estado } : {})
+      const data = await getOrdenes()
 
       if (pedido === ultimoPedidoRef.current) {
         setOrdenes(data)
@@ -190,12 +228,6 @@ function OrdenesPage() {
     } finally {
       setIsDeleting(false)
     }
-  }
-
-  const handleEstadoFiltroChange = async (event) => {
-    const estado = event.target.value
-    setEstadoFiltro(estado)
-    await loadOrdenes(estado)
   }
 
   const columns = [
@@ -403,31 +435,42 @@ function OrdenesPage() {
         title="Ordenes de vuelo"
       />
 
-      <section className="mb-4 flex flex-wrap items-center gap-3">
-        <select
-          aria-label="Filtrar por estado"
-          className={selectClassName}
-          onChange={handleEstadoFiltroChange}
-          value={estadoFiltro}
-        >
-          <option value="">Todos los estados</option>
-          {Object.entries(ESTADOS_ORDEN).map(([valor, etiqueta]) => (
-            <option key={valor} value={valor}>
-              {etiqueta}
-            </option>
-          ))}
-        </select>
-
-        <p className="text-sm text-slate-500">
-          {ordenes.length} {ordenes.length === 1 ? 'orden' : 'ordenes'}
-        </p>
-      </section>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={ordenes.length} visibles={ordenesVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar ordenes"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por numero, lote, campo o aeronave"
+          valor={filtros.q}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por estado"
+          onChange={(valor) => cambiarFiltro('estado', valor)}
+          opciones={Object.entries(ESTADOS_ORDEN).map(([valor, etiqueta]) => ({ valor, etiqueta }))}
+          todos="Todos los estados"
+          valor={filtros.estado}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por aeronave"
+          onChange={(valor) => cambiarFiltro('aeronave', valor)}
+          opciones={aeronaves.map((aeronave) => ({ valor: aeronave.id, etiqueta: `${aeronave.matricula} · ${aeronave.modelo}` }))}
+          todos="Todas las aeronaves"
+          valor={filtros.aeronave}
+        />
+        <FiltroFecha etiqueta="Desde" max={filtros.hasta} onChange={(valor) => cambiarFiltro('desde', valor)} valor={filtros.desde} />
+        <FiltroFecha etiqueta="Hasta" min={filtros.desde} onChange={(valor) => cambiarFiltro('hasta', valor)} valor={filtros.hasta} />
+      </BarraFiltros>
 
       <DataTable
         columns={columns}
-        emptyMessage="No hay ordenes de vuelo. Crea la primera para generar una ruta."
+        emptyMessage={
+          <SinResultados
+            hayFiltros={hayFiltros}
+            mensajeVacio="No hay ordenes de vuelo. Crea la primera para generar una ruta."
+            onLimpiar={limpiarFiltros}
+          />
+        }
         getRowKey={(orden) => orden.id}
-        rows={ordenes}
+        rows={ordenesVisibles}
       />
 
       {isDialogOpen && (
