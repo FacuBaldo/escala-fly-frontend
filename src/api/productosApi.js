@@ -1,9 +1,9 @@
 import apiClient from './apiClient'
 
-const getProductos = async (empresaId, tipo) => {
+const getProductos = async (empresaId, tipoId) => {
   const params = {}
   if (empresaId) params.empresaId = empresaId
-  if (tipo) params.tipo = tipo
+  if (tipoId) params.tipoId = tipoId
 
   const response = await apiClient.get('/productos', {
     params: Object.keys(params).length > 0 ? params : undefined,

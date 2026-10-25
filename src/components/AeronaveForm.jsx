@@ -11,6 +11,7 @@ const emptyForm = {
   estado: 'ACTIVA',
   capacidadUtilLitros: '',
   anchoAplicacionMetros: '',
+  radioGiroMetros: '',
   observaciones: '',
   empresaId: '',
 }
@@ -31,6 +32,7 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
           estado: editingAeronave.estado,
           capacidadUtilLitros: editingAeronave.capacidadUtilLitros ?? '',
           anchoAplicacionMetros: editingAeronave.anchoAplicacionMetros ?? '',
+          radioGiroMetros: editingAeronave.radioGiroMetros ?? '',
           observaciones: editingAeronave.observaciones || '',
           empresaId: editingAeronave.empresaId,
         }
@@ -54,6 +56,7 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
       ...form,
       capacidadUtilLitros: form.capacidadUtilLitros === '' ? null : Number(form.capacidadUtilLitros),
       anchoAplicacionMetros: form.anchoAplicacionMetros === '' ? null : Number(form.anchoAplicacionMetros),
+      radioGiroMetros: form.radioGiroMetros === '' ? null : Number(form.radioGiroMetros),
     })
   }
 
@@ -148,7 +151,7 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
         icono={Droplets}
         titulo="Datos de aplicacion"
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <CampoConUnidad
             ayuda="Litros que carga la tolva por vuelo."
             etiqueta="Capacidad util de caldo"
@@ -170,6 +173,18 @@ function AeronaveForm({ editingAeronave, empresas, isSaving, onCancel, onSave, s
             placeholder="25"
             unidad="m"
             value={form.anchoAplicacionMetros}
+          />
+
+          <CampoConUnidad
+            ayuda="Con el que vira al final de cada pasada. Suele estar entre 150 y 300 m."
+            etiqueta="Radio de giro"
+            max={1000}
+            min={30}
+            name="radioGiroMetros"
+            onChange={handleChange}
+            placeholder="200"
+            unidad="m"
+            value={form.radioGiroMetros}
           />
         </div>
       </SeccionFormulario>

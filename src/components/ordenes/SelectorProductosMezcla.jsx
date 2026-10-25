@@ -43,9 +43,11 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
         const producto = productoPorId(fila.productoId)
         const dosis = Number(fila.dosisPorHectarea)
         const totalProducto = Number.isFinite(dosis) && superficieHa ? dosis * superficieHa : null
+        // La dosis se carga en la unidad del producto, por hectarea
+        const unidadDosis = producto?.unidadMedida?.abreviatura ? `${producto.unidadMedida.abreviatura}/ha` : '/ha'
 
         return (
-          <div className="grid grid-cols-[minmax(0,1fr)_7rem_2.25rem] items-center gap-2" key={indice}>
+          <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_2.25rem] items-center gap-2" key={indice}>
             <select
               aria-label={`Producto ${indice + 1}`}
               className={inputClassName}
@@ -63,16 +65,21 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
               ))}
             </select>
 
-            <input
-              aria-label={`Dosis del producto ${indice + 1}`}
-              className={inputClassName}
-              min={0}
-              onChange={(event) => actualizarFila(indice, 'dosisPorHectarea', event.target.value)}
-              placeholder="Dosis/ha"
-              step="any"
-              type="number"
-              value={fila.dosisPorHectarea}
-            />
+            <span className="relative block">
+              <input
+                aria-label={`Dosis del producto ${indice + 1}`}
+                className={`campo-con-unidad w-full pr-14 ${inputClassName}`}
+                min={0}
+                onChange={(event) => actualizarFila(indice, 'dosisPorHectarea', event.target.value)}
+                placeholder="Dosis"
+                step="any"
+                type="number"
+                value={fila.dosisPorHectarea}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                {unidadDosis}
+              </span>
+            </span>
 
             <button
               aria-label={`Quitar producto ${indice + 1}`}
@@ -87,7 +94,7 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
             {totalProducto > 0 && (
               <p className="col-span-3 -mt-1 text-xs text-slate-500">
                 {producto?.nombre}: {totalProducto.toLocaleString('es-AR', { maximumFractionDigits: 2 })}{' '}
-                {producto?.unidadMedida || ''} para todo el lote
+                {producto?.unidadMedida?.abreviatura || ''} para todo el lote
               </p>
             )}
           </div>

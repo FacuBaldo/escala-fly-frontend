@@ -1,53 +1,60 @@
-import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList } from 'lucide-react'
+import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList, Settings } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROLES, hasRole } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 
-const menuItems = [
+const OPERATIVOS = [ROLES.ADMIN, ROLES.ENCARGADO]
+
+// Menu agrupado por area de trabajo: lo del dia a dia arriba y la administracion
+// abajo. Una seccion sin items visibles para el rol no se muestra.
+const seccionesMenu = [
   {
-    icon: Users,
-    label: 'Usuarios',
-    path: '/usuarios',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+    titulo: 'Operacion',
+    items: [
+      { icon: ClipboardList, label: 'Ordenes', path: '/ordenes', roles: OPERATIVOS },
+      { icon: MapPin, label: 'Campos', path: '/campos', roles: OPERATIVOS },
+      { icon: TowerControl, label: 'Pistas', path: '/pistas', roles: OPERATIVOS },
+    ],
   },
   {
-    icon: Building2,
-    label: 'Empresas',
-    path: '/empresas',
-    roles: [ROLES.ADMIN],
+    titulo: 'Recursos',
+    items: [
+      { icon: Plane, label: 'Aeronaves', path: '/aeronaves', roles: OPERATIVOS },
+      { icon: Package, label: 'Productos', path: '/productos', roles: OPERATIVOS },
+    ],
   },
   {
-    icon: MapPin,
-    label: 'Campos',
-    path: '/campos',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+    titulo: 'Administracion',
+    items: [
+      { icon: Users, label: 'Usuarios', path: '/usuarios', roles: OPERATIVOS },
+      { icon: Building2, label: 'Empresas', path: '/empresas', roles: [ROLES.ADMIN] },
+    ],
   },
   {
-    icon: TowerControl,
-    label: 'Pistas',
-    path: '/pistas',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: Plane,
-    label: 'Aeronaves',
-    path: '/aeronaves',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: ClipboardList,
-    label: 'Ordenes de vuelo',
-    path: '/ordenes',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
-  },
-  {
-    icon: Package,
-    label: 'Productos',
-    path: '/productos',
-    roles: [ROLES.ADMIN, ROLES.ENCARGADO],
+    titulo: 'Sistema',
+    items: [{ icon: Settings, label: 'Configuracion', path: '/configuracion', roles: [ROLES.ADMIN] }],
   },
 ]
+
+function MenuLink({ item, isActive, onNavigate }) {
+  const Icon = item.icon
+
+  return (
+    <Link
+      to={item.path}
+      onClick={onNavigate}
+      className={`flex w-full items-center gap-3 rounded-md px-4 py-2.5 text-left text-sm font-bold transition ${
+        isActive
+          ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
+          : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+      }`}
+    >
+      <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
+      <span>{item.label}</span>
+    </Link>
+  )
+}
 
 function AppLayout({ children }) {
   const { cerrarSesion, usuario } = useAutenticacion()
@@ -57,7 +64,13 @@ function AppLayout({ children }) {
   const location = useLocation()
 
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
-  const visibleMenuItems = menuItems.filter((item) => hasRole(usuario, item.roles))
+  const seccionesVisibles = seccionesMenu
+    .map((seccion) => ({ ...seccion, items: seccion.items.filter((item) => hasRole(usuario, item.roles)) }))
+    .filter((seccion) => seccion.items.length > 0)
+
+  const cerrarEnPantallaChica = () => {
+    if (window.innerWidth < 1024) setIsSidebarOpen(false)
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen((currentValue) => !currentValue)
@@ -111,29 +124,24 @@ function AppLayout({ children }) {
           />
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-5">
-          {visibleMenuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname.startsWith(item.path)
-
-            return (
-              <Link
-                to={item.path}
-                onClick={() => {
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false)
-                }}
-                className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
-                  isActive
-                    ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-900/20'
-                    : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-                key={item.label}
-              >
-                <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav aria-label="Menu principal" className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          {seccionesVisibles.map((seccion, indice) => (
+            <div className={indice > 0 ? 'mt-5' : ''} key={seccion.titulo}>
+              <p className="px-4 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                {seccion.titulo}
+              </p>
+              <div className="space-y-1">
+                {seccion.items.map((item) => (
+                  <MenuLink
+                    isActive={location.pathname.startsWith(item.path)}
+                    item={item}
+                    key={item.label}
+                    onNavigate={cerrarEnPantallaChica}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="shrink-0 border-t border-emerald-100 px-4 py-4">

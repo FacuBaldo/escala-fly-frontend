@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
@@ -6,28 +6,28 @@ import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
-import ProductoForm, { TIPOS_PRODUCTO } from '../components/ProductoForm'
+import ProductoForm from '../components/ProductoForm'
+import BarraFiltros from '../components/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/filtros/FiltroSelect'
+import SinResultados from '../components/filtros/SinResultados'
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../api/productosApi'
+import { getTiposProducto, getUnidadesMedida } from '../api/catalogosApi'
 import { getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
+import useFiltros from '../hooks/useFiltros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
-
-const TIPO_BADGE_STYLES = {
-  HERBICIDA: 'bg-amber-50 text-amber-800 border-amber-200',
-  FUNGICIDA: 'bg-purple-50 text-purple-800 border-purple-200',
-  INSECTICIDA: 'bg-rose-50 text-rose-800 border-rose-200',
-  FERTILIZANTE: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  COADYUVANTE: 'bg-sky-50 text-sky-800 border-sky-200',
-  OTRO: 'bg-slate-100 text-slate-700 border-slate-200',
-}
 
 function ProductosPage() {
   const { usuario } = useAutenticacion()
   const { showToast } = useToast()
   const [productos, setProductos] = useState([])
   const [empresas, setEmpresas] = useState([])
+  const [tipos, setTipos] = useState([])
+  const [unidades, setUnidades] = useState([])
   const [editingProducto, setEditingProducto] = useState(null)
   const [deletingProducto, setDeletingProducto] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -58,8 +58,8 @@ function ProductosPage() {
   useEffect(() => {
     let isActive = true
 
-    Promise.allSettled([getProductos(), getEmpresas()])
-      .then(([productosRes, empresasRes]) => {
+    Promise.allSettled([getProductos(), getEmpresas(), getTiposProducto(), getUnidadesMedida()])
+      .then(([productosRes, empresasRes, tiposRes, unidadesRes]) => {
         if (!isActive) {
           return
         }
@@ -80,6 +80,20 @@ function ProductosPage() {
             message: getErrorMessage(empresasRes.reason, 'No se pudieron cargar las empresas.'),
             type: 'error',
           })
+        }
+
+        // Tipos y unidades salen de los catalogos de Configuracion
+        if (tiposRes.status === 'fulfilled' && unidadesRes.status === 'fulfilled') {
+          setTipos(tiposRes.value)
+          setUnidades(unidadesRes.value)
+        } else {
+          const motivo = tiposRes.reason || unidadesRes.reason
+          if (!motivo?.cierreSesionPorAutenticacion) {
+            showToast({
+              message: getErrorMessage(motivo, 'No se pudieron cargar los tipos y unidades de medida.'),
+              type: 'error',
+            })
+          }
         }
       })
       .finally(() => {
@@ -185,9 +199,21 @@ function ProductosPage() {
   const getEmpresaNombre = (empresaId) =>
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
 
-  const getTipoLabel = (tipo) =>
-    TIPOS_PRODUCTO.find((item) => item.value === tipo)?.label || tipo
   const isAdmin = usuario?.rol === ROLES.ADMIN
+
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', tipo: '', unidad: '', empresa: '' })
+
+  const productosVisibles = useMemo(
+    () =>
+      productos.filter(
+        (producto) =>
+          coincideBusqueda(filtros.q, [producto.nombre, producto.marca]) &&
+          (!filtros.tipo || producto.tipoId === filtros.tipo) &&
+          (!filtros.unidad || producto.unidadMedidaId === filtros.unidad) &&
+          (!filtros.empresa || producto.empresaId === filtros.empresa),
+      ),
+    [filtros, productos],
+  )
 
   const columns = [
     {
@@ -198,14 +224,11 @@ function ProductosPage() {
     {
       key: 'tipo',
       header: 'Tipo / Categoria',
-      render: (producto) => {
-        const style = TIPO_BADGE_STYLES[producto.tipo] || TIPO_BADGE_STYLES.OTRO
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style}`}>
-            {getTipoLabel(producto.tipo)}
-          </span>
-        )
-      },
+      render: (producto) => (
+        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+          {producto.tipo?.nombre}
+        </span>
+      ),
     },
     {
       key: 'marca',
@@ -216,7 +239,10 @@ function ProductosPage() {
       key: 'unidadMedida',
       header: 'Unidad de medida',
       render: (producto) => (
-        <span className="font-mono text-sm text-slate-700">{producto.unidadMedida}</span>
+        <span className="text-sm text-slate-700">
+          {producto.unidadMedida?.nombre}{' '}
+          <span className="font-mono text-xs text-slate-500">({producto.unidadMedida?.abreviatura})</span>
+        </span>
       ),
     },
     ...(isAdmin
@@ -288,11 +314,45 @@ function ProductosPage() {
         title="Productos"
       />
 
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={productos.length} visibles={productosVisibles.length}>
+        <BuscadorFiltro
+          etiqueta="Buscar productos"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre o marca"
+          valor={filtros.q}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por tipo"
+          onChange={(valor) => cambiarFiltro('tipo', valor)}
+          opciones={tipos.map((tipo) => ({ valor: tipo.id, etiqueta: tipo.nombre }))}
+          todos="Todos los tipos"
+          valor={filtros.tipo}
+        />
+        <FiltroSelect
+          etiqueta="Filtrar por unidad de medida"
+          onChange={(valor) => cambiarFiltro('unidad', valor)}
+          opciones={unidades.map((unidad) => ({ valor: unidad.id, etiqueta: `${unidad.nombre} (${unidad.abreviatura})` }))}
+          todos="Todas las unidades"
+          valor={filtros.unidad}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <DataTable
         columns={columns}
-        emptyMessage="No hay productos cargados."
+        emptyMessage={
+          <SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay productos cargados." onLimpiar={limpiarFiltros} />
+        }
         getRowKey={(producto) => producto.id}
-        rows={productos}
+        rows={productosVisibles}
       />
 
       {isDialogOpen && (
@@ -309,6 +369,8 @@ function ProductosPage() {
             onCancel={closeDialog}
             onSave={handleSave}
             showEmpresa={isAdmin}
+            tipos={tipos}
+            unidades={unidades}
           />
         </FormDialog>
       )}

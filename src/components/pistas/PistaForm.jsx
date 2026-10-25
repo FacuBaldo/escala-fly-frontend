@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { MapPin } from 'lucide-react'
-import SelectorUbicacion from './SelectorUbicacion'
+import { claseAyuda, claseCampo, claseEtiqueta } from '../formulario/estilosFormulario'
 
-const inputClassName =
-  'rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
-
-function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmpresa = false }) {
+/**
+ * Datos de la pista. La ubicacion se marca sobre el mapa de la pantalla antes de
+ * abrir este formulario; aca llegan las coordenadas ya cargadas y se pueden
+ * corregir a mano si se tiene el dato exacto (por ejemplo, de un GPS).
+ */
+function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmpresa = false, ubicacionInicial }) {
   const [form, setForm] = useState(() => ({
     nombre: editingPista?.nombre || '',
     descripcion: editingPista?.descripcion || '',
-    latitud: editingPista?.latitud ?? '',
-    longitud: editingPista?.longitud ?? '',
+    latitud: editingPista?.latitud ?? ubicacionInicial?.latitud ?? '',
+    longitud: editingPista?.longitud ?? ubicacionInicial?.longitud ?? '',
     empresaId: editingPista?.empresaId || '',
   }))
 
@@ -18,14 +20,6 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
     const { name, value } = event.target
 
     setForm((currentForm) => ({ ...currentForm, [name]: value }))
-  }
-
-  const seleccionarEnMapa = (lat, lng) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      latitud: Number(lat.toFixed(6)),
-      longitud: Number(lng.toFixed(6)),
-    }))
   }
 
   const handleSubmit = async (event) => {
@@ -37,17 +31,13 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
     })
   }
 
-  const latitudNumero = Number(form.latitud)
-  const longitudNumero = Number(form.longitud)
-  const tieneUbicacion = form.latitud !== '' && form.longitud !== '' && Number.isFinite(latitudNumero) && Number.isFinite(longitudNumero)
-
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className={claseEtiqueta}>
         Nombre de la pista
         <input
           autoFocus
-          className={`h-11 ${inputClassName}`}
+          className={`h-11 ${claseCampo}`}
           name="nombre"
           onChange={handleChange}
           placeholder="Ej: Pista Quebracho"
@@ -58,10 +48,11 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
       </label>
 
       {showEmpresa && (
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Empresa
           <select
-            className={`h-11 ${inputClassName}`}
+            className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
+            disabled={Boolean(editingPista)}
             name="empresaId"
             onChange={handleChange}
             required
@@ -76,62 +67,64 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
               </option>
             ))}
           </select>
+          {/* El backend no mueve pistas entre empresas: sus lotes y ordenes quedarian apuntando a otra */}
+          {editingPista && (
+            <span className={claseAyuda}>Una pista no se puede pasar a otra empresa.</span>
+          )}
         </label>
       )}
 
-      <div className="grid gap-2">
-        <span className="flex items-center gap-1 text-sm font-semibold text-slate-700">
-          <MapPin aria-hidden="true" size={16} />
+      <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+          <MapPin aria-hidden="true" className="text-emerald-700" size={16} />
           Ubicacion
-        </span>
-        <p className="text-xs text-slate-500">
-          Hace clic en el mapa para marcar la pista, o busca la zona por ciudad, direccion o coordenadas.
         </p>
-        <SelectorUbicacion
-          latitud={tieneUbicacion ? latitudNumero : undefined}
-          longitud={tieneUbicacion ? longitudNumero : undefined}
-          onSeleccionar={seleccionarEnMapa}
-        />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={claseEtiqueta}>
+            Latitud
+            <input
+              className={`h-11 ${claseCampo}`}
+              max={90}
+              min={-90}
+              name="latitud"
+              onChange={handleChange}
+              placeholder="-31.4278"
+              required
+              step="any"
+              type="number"
+              value={form.latitud}
+            />
+          </label>
+
+          <label className={claseEtiqueta}>
+            Longitud
+            <input
+              className={`h-11 ${claseCampo}`}
+              max={180}
+              min={-180}
+              name="longitud"
+              onChange={handleChange}
+              placeholder="-62.0828"
+              required
+              step="any"
+              type="number"
+              value={form.longitud}
+            />
+          </label>
+        </div>
+
+        <p className={claseAyuda}>
+          {editingPista
+            ? 'Para cambiarla de lugar es mas comodo usar "Mover" sobre el mapa. Aca podes corregir las coordenadas a mano.'
+            : 'Se completo con el punto que marcaste en el mapa. Podes corregirla a mano si tenes la coordenada exacta.'}
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Latitud
-          <input
-            className={`h-11 ${inputClassName}`}
-            max={90}
-            min={-90}
-            name="latitud"
-            onChange={handleChange}
-            placeholder="-31.4278"
-            required
-            step="any"
-            type="number"
-            value={form.latitud}
-          />
-        </label>
-
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-          Longitud
-          <input
-            className={`h-11 ${inputClassName}`}
-            max={180}
-            min={-180}
-            name="longitud"
-            onChange={handleChange}
-            placeholder="-62.0828"
-            required
-            step="any"
-            type="number"
-            value={form.longitud}
-          />
-        </label>
-      </div>
-
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className={claseEtiqueta}>
         Descripcion (Opcional)
         <textarea
-          className={`min-h-20 py-2 ${inputClassName}`}
+          className={`min-h-20 py-2 ${claseCampo}`}
           name="descripcion"
           onChange={handleChange}
           placeholder="Ej: pista de cesped de 800 m"
@@ -139,7 +132,7 @@ function PistaForm({ editingPista, empresas, isSaving, onCancel, onSave, showEmp
         />
       </label>
 
-      <div className="flex flex-wrap gap-2 pt-2">
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
         <button
           className="rounded-md bg-emerald-700 px-4 py-2 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={isSaving}

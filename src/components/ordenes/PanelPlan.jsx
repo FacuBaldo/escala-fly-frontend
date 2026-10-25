@@ -1,5 +1,25 @@
-import { Compass, Droplets, Layers, Navigation, Route } from 'lucide-react'
-import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero } from '../../utils/ordenes'
+import { Compass, Droplets, Layers, Navigation, Route, Sparkles } from 'lucide-react'
+import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero, nombrePatron, PATRONES_VUELO } from '../../utils/ordenes'
+import EsquemaPatron from './EsquemaPatron'
+
+// El motor mide desde el este; la orientación geográfica se expresa desde el norte.
+const orientacionGeografica = (angulo) => ((90 - angulo) % 180 + 180) % 180
+
+const DesgloseDistancias = ({ viajes }) => {
+  if (!viajes.every((viaje) => viaje.segmentos?.length)) return null
+  const totales = { APLICACION: 0, GIRO: 0, TRASLADO: 0, ENLACE: 0 }
+  for (const viaje of viajes) {
+    for (const tramo of viaje.segmentos) totales[tramo.tipo] += tramo.distanciaMetros
+  }
+  return <dl className="grid gap-1.5 text-xs">
+    {Object.entries({ APLICACION: 'Aplicación', GIRO: 'Giros', TRASLADO: 'Traslados pista–lote', ENLACE: 'Enlaces sin aplicación' }).map(([tipo, nombre]) => (
+      <div className="flex justify-between gap-2" key={tipo}>
+        <dt className="text-slate-500">{nombre}</dt>
+        <dd className="font-semibold text-slate-800">{formatearDistancia(totales[tipo])}</dd>
+      </div>
+    ))}
+  </dl>
+}
 
 const Tarjeta = ({ icono: Icono, titulo, valor, detalle }) => (
   <div className="rounded-lg border border-emerald-100 bg-white px-3 py-2">
@@ -13,10 +33,27 @@ const Tarjeta = ({ icono: Icono, titulo, valor, detalle }) => (
 )
 
 /**
+ * En automatico el planificador calcula los dos patrones: devuelve cuanto menos
+ * vuela el elegido que el otro, o null si no hubo comparacion.
+ */
+const ahorroDelPatron = (plan) => {
+  const comparacion = plan.comparacionPatrones || {}
+  const otros = Object.entries(comparacion).filter(([patron]) => patron !== plan.patron)
+
+  if (plan.patronSolicitado !== 'AUTOMATICO' || otros.length === 0) {
+    return null
+  }
+
+  const [otroPatron, distanciaOtro] = otros[0]
+  return { otroPatron, metros: distanciaOtro - plan.distanciaTotalMetros }
+}
+
+/**
  * Resumen del plan, selector de viajes y ficha del viaje elegido.
  */
 function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
   const viaje = plan.viajes.find((item) => item.numero === viajeSeleccionado)
+  const ahorro = ahorroDelPatron(plan)
 
   return (
     <div className="grid gap-4">
@@ -29,18 +66,40 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
         />
         <Tarjeta icono={Droplets} titulo="Caldo total" valor={formatearLitros(plan.caldoTotalLitros)} />
         <Tarjeta
-          detalle={`${formatearDistancia(plan.distanciaAplicacionMetros)} aplicando`}
+          detalle={`${formatearDistancia(plan.distanciaAplicacionMetros)} aplicando · ${formatearDistancia(
+            plan.distanciaGirosMetros,
+          )} en giros`}
           icono={Route}
           titulo="Distancia"
           valor={formatearDistancia(plan.distanciaTotalMetros)}
         />
         <Tarjeta
-          detalle={`${formatearDistancia(plan.distanciaTrasladoMetros)} de traslado`}
+          detalle={`Desde el norte · ${plan.radioGiroMetros ? `radio de giro ${formatearNumero(plan.radioGiroMetros, 0)} m` : nombrePatron(plan.patron)}`}
           icono={Compass}
-          titulo="Rumbo"
-          valor={`${formatearNumero(plan.orientacionGrados, 0)}°`}
+          titulo="Eje de pasadas"
+          valor={`${formatearNumero(orientacionGeografica(plan.orientacionGrados), 0)}° / ${formatearNumero(orientacionGeografica(plan.orientacionGrados) + 180, 0)}°`}
         />
       </div>
+
+      <DesgloseDistancias viajes={plan.viajes} />
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+        <p className="text-sm font-bold text-slate-900">{nombrePatron(plan.patron)} · {PATRONES_VUELO[plan.patron]?.subtitulo}</p>
+        <EsquemaPatron patron={plan.patron} />
+        <p className="text-xs leading-5 text-slate-600">{PATRONES_VUELO[plan.patron]?.descripcion}</p>
+        <p className="mt-1 text-xs text-slate-500">Esquema orientativo. Números = orden de vuelo; flechas = sentido.</p>
+      </div>
+
+      {ahorro && ahorro.metros > 0 && (
+        <p className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
+          <Sparkles aria-hidden="true" className="mt-0.5 shrink-0" size={14} />
+          <span>
+            Se eligio <span className="font-bold">{nombrePatron(plan.patron)}</span>: vuela{' '}
+            <span className="font-bold">{formatearDistancia(ahorro.metros)} menos</span> que{' '}
+            {nombrePatron(ahorro.otroPatron).toLowerCase()}.
+          </span>
+        </p>
+      )}
 
       <div className="grid gap-2">
         <span className="text-sm font-semibold text-slate-700">
@@ -67,6 +126,7 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
               key={item.numero}
+              aria-pressed={viajeSeleccionado === item.numero}
               onClick={() => onSeleccionarViaje(item.numero)}
               type="button"
             >
@@ -123,6 +183,7 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
               </dd>
             </div>
           </dl>
+          <div className="mt-3 border-t border-slate-200 pt-3"><DesgloseDistancias viajes={[viaje]} /></div>
         </div>
       ) : (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white text-sm">
@@ -147,7 +208,8 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
 
       <p className="flex items-center gap-1.5 text-xs text-slate-500">
         <Navigation aria-hidden="true" size={13} />
-        Las lineas punteadas son traslados y giros; las solidas, los tramos con pulverizacion activa.
+        {viaje ? 'Azul: aplicación. Ámbar: giros. Gris discontinuo: traslados. Violeta punteado: enlaces sin aplicar. Las flechas indican el sentido y los números, el orden de las pasadas dentro del viaje (al acercar el mapa).'
+          : 'Seleccioná un viaje para ver flechas, orden de pasadas e inicio/fin de aplicación. En la vista general, cada viaje tiene su propio color de aplicación.'}
       </p>
     </div>
   )
