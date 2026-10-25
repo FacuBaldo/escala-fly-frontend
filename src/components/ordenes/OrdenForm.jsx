@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
+import EsquemaPatron from './EsquemaPatron'
 import CampoConUnidad from '../formulario/CampoConUnidad'
 import SeccionFormulario from '../formulario/SeccionFormulario'
 import { claseAyuda, claseCampo, claseEtiqueta } from '../formulario/estilosFormulario'
@@ -223,7 +224,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Como trabaja el avion sobre el lote. Los giros se calculan con su radio real."
+        descripcion="Cómo trabaja el avión sobre el lote. Los giros usan el radio configurado de la aeronave."
         icono={Route}
         titulo="Patron y giros"
       >
@@ -244,7 +245,7 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
           <fieldset className="grid content-start gap-1.5">
             <legend className="mb-1.5 text-sm font-semibold text-slate-700">Patron de trabajo</legend>
             <div className="grid gap-2 sm:grid-cols-3">
-              {Object.entries(PATRONES_VUELO).map(([valor, { nombre, descripcion }]) => {
+              {Object.entries(PATRONES_VUELO).map(([valor, { nombre, subtitulo, descripcion }]) => {
                 const elegido = form.patron === valor
 
                 return (
@@ -267,11 +268,14 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
                       />
                       {nombre}
                     </span>
+                    <span className="text-xs font-semibold text-emerald-800">{subtitulo}</span>
+                    <EsquemaPatron patron={valor} />
                     <span className="text-xs leading-4 text-slate-500">{descripcion}</span>
                   </label>
                 )
               })}
             </div>
+            <p className={claseAyuda}>Esquemas orientativos: los números indican el orden de vuelo. El salto y los giros reales dependen del lote y del radio.</p>
           </fieldset>
         </div>
       </SeccionFormulario>

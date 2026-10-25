@@ -151,6 +151,7 @@ function OrdenesPage() {
     try {
       const data = await getPlanDeOrden(orden.id)
       setPlan(data)
+      setViajeSeleccionado(data.viajes[0]?.numero ?? null)
     } catch (requestError) {
       notificarError(requestError, 'No se pudo cargar el plan de vuelo.')
       setOrdenDetalle(null)
@@ -170,7 +171,7 @@ function OrdenesPage() {
       await regenerarPlan(ordenDetalle.id)
       const data = await getPlanDeOrden(ordenDetalle.id)
       setPlan(data)
-      setViajeSeleccionado(null)
+      setViajeSeleccionado(data.viajes[0]?.numero ?? null)
       showToast({ message: 'Ruta regenerada con los datos actuales del lote.', type: 'success' })
       await loadOrdenes()
     } catch (requestError) {

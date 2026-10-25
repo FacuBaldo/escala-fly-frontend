@@ -18,15 +18,18 @@ const ESTILOS_ESTADO = {
 const PATRONES_VUELO = {
   AUTOMATICO: {
     nombre: 'Automatico',
-    descripcion: 'Calcula los dos patrones y elige el que menos vuela.',
+    subtitulo: 'Menor distancia calculada',
+    descripcion: 'Compara ambos patrones y elige el recorrido de menor distancia total.',
   },
   IDA_Y_VUELTA: {
     nombre: 'Ida y vuelta',
-    descripcion: 'Pasadas una al lado de la otra. Cada vuelta es un giro en pera.',
+    subtitulo: 'Pasadas contiguas',
+    descripcion: 'Continúa por la franja vecina, en sentido contrario. Con poco espacio, la vuelta es en pera.',
   },
   REDONDO: {
     nombre: 'Redondo',
-    descripcion: 'Trabaja en circuito salteando pasadas, con giros abiertos hacia el mismo lado.',
+    subtitulo: 'Pasadas salteadas',
+    descripcion: 'Alterna entre franjas separadas para favorecer giros abiertos. Completa las intermedias después; no es una espiral.',
   },
 }
 
