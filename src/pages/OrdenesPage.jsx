@@ -433,6 +433,8 @@ function OrdenesPage() {
           <OrdenForm
             aeronaves={aeronaves}
             editingOrden={editingOrden}
+            empresas={empresas}
+            isAdmin={isAdmin}
             isSaving={isSaving}
             key={editingOrden?.id || 'nueva-orden'}
             lotes={lotes}

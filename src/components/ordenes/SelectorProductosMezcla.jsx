@@ -7,7 +7,7 @@ const inputClassName = `h-10 text-sm ${claseCampo}`
  * Filas dinamicas de productos con su dosis por hectarea.
  * La mezcla es opcional: una orden puede generarse solo con los parametros de vuelo.
  */
-function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
+function SelectorProductosMezcla({ disabled = false, filas, productos, onChange, superficieHa }) {
   const actualizarFila = (indice, campo, valor) => {
     onChange(filas.map((fila, i) => (i === indice ? { ...fila, [campo]: valor } : fila)))
   }
@@ -23,9 +23,9 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
       <div className="flex justify-end">
         <button
           className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={productos.length === 0}
+          disabled={disabled || productos.length === 0}
           onClick={agregarFila}
-          title={productos.length === 0 ? 'Primero carga productos' : 'Agregar producto a la mezcla'}
+          title={disabled ? 'Selecciona primero una empresa' : productos.length === 0 ? 'No hay productos disponibles' : 'Agregar producto a la mezcla'}
           type="button"
         >
           <Plus aria-hidden="true" size={14} />
@@ -35,7 +35,9 @@ function SelectorProductosMezcla({ filas, productos, onChange, superficieHa }) {
 
       {filas.length === 0 && (
         <p className="rounded-md border border-dashed border-slate-200 px-3 py-3 text-xs text-slate-500">
-          Sin productos cargados. Podes agregar los agroquimicos con su dosis por hectarea.
+          {disabled ? 'Selecciona primero una empresa para agregar productos.' : productos.length === 0
+            ? 'No hay productos disponibles para esta orden.'
+            : 'Podes agregar agroquimicos con su dosis por hectarea.'}
         </p>
       )}
 

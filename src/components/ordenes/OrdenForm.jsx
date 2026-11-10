@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
+import { AlertTriangle, Building2, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
 import EsquemaPatron from './EsquemaPatron'
 import CampoConUnidad from '../compartidos/formularios/CampoConUnidad'
@@ -10,7 +10,8 @@ import { PATRONES_VUELO, RADIO_GIRO_POR_DEFECTO } from '../../utils/ordenes'
 
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '')
 
-function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave, productos }) {
+function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes, onCancel, onSave, productos }) {
+  const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || '')
   const [form, setForm] = useState(() => ({
     loteId: editingOrden?.loteId || '',
     aeronaveId: editingOrden?.aeronaveId || '',
@@ -36,10 +37,28 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
     setForm((currentForm) => ({ ...currentForm, [name]: value }))
   }
 
+  const handleEmpresaChange = (event) => {
+    setEmpresaId(event.target.value)
+    setForm((currentForm) => ({
+      ...currentForm,
+      loteId: '',
+      aeronaveId: '',
+      anchoAplicacionMetros: '',
+      capacidadUtilLitros: '',
+      radioGiroMetros: '',
+    }))
+    setFilasMezcla([])
+  }
+
+  const empresaSeleccionada = !isAdmin || Boolean(empresaId)
+  const lotesDisponibles = isAdmin ? lotes.filter((lote) => lote.empresaId === empresaId) : lotes
+  const aeronavesDisponibles = isAdmin ? aeronaves.filter((aeronave) => aeronave.empresaId === empresaId) : aeronaves
+  const productosDisponibles = isAdmin ? productos.filter((producto) => producto.empresaId === empresaId) : productos
+
   // Al elegir aeronave se precargan sus valores de fabrica, si los tiene
   const handleAeronaveChange = (event) => {
     const aeronaveId = event.target.value
-    const aeronave = aeronaves.find((item) => item.id === aeronaveId)
+    const aeronave = aeronavesDisponibles.find((item) => item.id === aeronaveId)
 
     setForm((currentForm) => ({
       ...currentForm,
@@ -71,9 +90,9 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
     })
   }
 
-  const loteElegido = lotes.find((lote) => lote.id === form.loteId)
+  const loteElegido = lotesDisponibles.find((lote) => lote.id === form.loteId)
   const faltanPistas = loteElegido && (!loteElegido.pistaPrincipalId || !loteElegido.pistaCargaId)
-  const puedeGuardar = !faltanPistas && form.loteId && form.aeronaveId
+  const puedeGuardar = empresaSeleccionada && !faltanPistas && loteElegido && aeronavesDisponibles.some((aeronave) => aeronave.id === form.aeronaveId)
 
   const caldoTotal =
     loteElegido && Number(form.litrosPorHectarea) > 0
@@ -87,6 +106,26 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
+      {isAdmin && (
+        <SeccionFormulario descripcion="Selecciona la empresa para ver sus recursos." icono={Building2} titulo="Empresa">
+          <label className={claseEtiqueta}>
+            Empresa
+            <select
+              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
+              disabled={Boolean(editingOrden)}
+              onChange={handleEmpresaChange}
+              required
+              value={empresaId}
+            >
+              <option value="">Selecciona una empresa</option>
+              {empresas.map((empresa) => (
+                <option key={empresa.id} value={empresa.id}>{empresa.nombre}</option>
+              ))}
+            </select>
+            {editingOrden && <span className={claseAyuda}>La empresa no se puede cambiar en una orden existente.</span>}
+          </label>
+        </SeccionFormulario>
+      )}
       <SeccionFormulario
         descripcion="Sobre que lote se aplica y con que avion."
         icono={Plane}
@@ -96,17 +135,17 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
           <label className={claseEtiqueta}>
             Lote
             <select
-              className={`h-11 ${claseCampo}`}
-              disabled={Boolean(editingOrden)}
+              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
+              disabled={!empresaSeleccionada || Boolean(editingOrden)}
               name="loteId"
               onChange={handleChange}
               required
               value={form.loteId}
             >
               <option disabled value="">
-                Selecciona un lote
+                {empresaSeleccionada ? 'Selecciona un lote' : 'Selecciona primero una empresa'}
               </option>
-              {lotes.map((lote) => (
+              {lotesDisponibles.map((lote) => (
                 <option key={lote.id} value={lote.id}>
                   {lote.campoNombre ? `${lote.campoNombre} · ` : ''}
                   {lote.nombre} ({formatearSuperficie(lote.superficie)})
@@ -118,28 +157,34 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
                 El lote no se puede cambiar en una orden existente.
               </span>
             )}
+            {isAdmin && empresaSeleccionada && lotesDisponibles.length === 0 && (
+              <span className={claseAyuda}>Esta empresa no tiene lotes disponibles.</span>
+            )}
           </label>
 
           <label className={claseEtiqueta}>
             Aeronave
             <select
-              className={`h-11 ${claseCampo}`}
+              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
+              disabled={!empresaSeleccionada}
               name="aeronaveId"
               onChange={handleAeronaveChange}
               required
               value={form.aeronaveId}
             >
               <option disabled value="">
-                Selecciona una aeronave
+                {empresaSeleccionada ? 'Selecciona una aeronave' : 'Selecciona primero una empresa'}
               </option>
-              {aeronaves.map((aeronave) => (
+              {aeronavesDisponibles.map((aeronave) => (
                 <option key={aeronave.id} value={aeronave.id}>
                   {aeronave.matricula} · {aeronave.modelo}
                 </option>
               ))}
             </select>
             <span className={claseAyuda}>
-              Completa sola el ancho y la capacidad de abajo.
+              {isAdmin && empresaSeleccionada && aeronavesDisponibles.length === 0
+                ? 'Esta empresa no tiene aeronaves disponibles.'
+                : 'Completa sola el ancho y la capacidad de abajo.'}
             </span>
           </label>
         </div>
@@ -286,9 +331,10 @@ function OrdenForm({ aeronaves, editingOrden, isSaving, lotes, onCancel, onSave,
         titulo="Productos"
       >
         <SelectorProductosMezcla
+          disabled={!empresaSeleccionada}
           filas={filasMezcla}
           onChange={setFilasMezcla}
-          productos={productos}
+          productos={productosDisponibles}
           superficieHa={Number(loteElegido?.superficie || 0)}
         />
       </SeccionFormulario>
