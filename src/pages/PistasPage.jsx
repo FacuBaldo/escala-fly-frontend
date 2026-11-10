@@ -6,6 +6,7 @@ import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import MapaPistas from '../components/pistas/MapaPistas'
+import BarraFiltros from '../components/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
 import FiltroSelect from '../components/filtros/FiltroSelect'
 import PistaForm from '../components/pistas/PistaForm'
@@ -24,17 +25,6 @@ const MODOS = {
   MOVER: 'mover',
 }
 
-// Valores del filtro de estado en la direccion (?estado=activas); vacio es "todas"
-const ESTADOS = {
-  ACTIVAS: 'activas',
-  INACTIVAS: 'inactivas',
-}
-
-const OPCIONES_ESTADO = [
-  { valor: ESTADOS.ACTIVAS, etiqueta: 'Activas' },
-  { valor: ESTADOS.INACTIVAS, etiqueta: 'Dadas de baja' },
-]
-
 const pistaActionClassName =
   'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 
@@ -45,7 +35,8 @@ function PistasPage() {
   const { showToast } = useToast()
   const [pistas, setPistas] = useState([])
   const [empresas, setEmpresas] = useState([])
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', estado: '', empresa: '' })
+  const isAdmin = usuario?.rol === ROLES.ADMIN
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
   const [selectedPistaId, setSelectedPistaId] = useState(null)
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
@@ -60,7 +51,6 @@ function PistasPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const isAdmin = usuario?.rol === ROLES.ADMIN
   const isModoVer = modo === MODOS.VER
 
   const notificarError = useCallback(
@@ -139,15 +129,13 @@ function PistasPage() {
     () =>
       pistas.filter(
         (pista) =>
-          coincideBusqueda(filtros.q, [pista.nombre, pista.descripcion]) &&
-          (filtros.estado !== ESTADOS.ACTIVAS || pista.activo) &&
-          (filtros.estado !== ESTADOS.INACTIVAS || !pista.activo) &&
+          coincideBusqueda(filtros.q, [pista.nombre]) &&
           (!filtros.empresa || pista.empresaId === filtros.empresa),
       ),
     [filtros, pistas],
   )
 
-  // Cambiar estado o empresa reencuadra el mapa; la busqueda no, para que no salte con cada letra
+  // Cambiar empresa reencuadra el mapa; la busqueda no, para que no salte con cada letra
   const handleFiltroQueReencuadra = (clave) => (valor) => {
     cambiarFiltro(clave, valor)
     setSelectedPistaId(null)
@@ -343,6 +331,26 @@ function PistasPage() {
         </div>
       )}
 
+      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
+        <BuscadorFiltro
+          disabled={!isModoVer}
+          etiqueta="Buscar pistas"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre"
+          valor={filtros.q}
+        />
+        {isAdmin && (
+          <FiltroSelect
+            disabled={!isModoVer}
+            etiqueta="Filtrar por empresa"
+            onChange={handleFiltroQueReencuadra('empresa')}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
+      </BarraFiltros>
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="relative z-0 h-[28rem] overflow-hidden rounded-lg border border-emerald-100 shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
           <MapaPistas
@@ -365,36 +373,6 @@ function PistasPage() {
                 {pistasVisibles.length} {pistasVisibles.length === 1 ? 'pista' : 'pistas'}
               </span>
             </div>
-            <div className="grid gap-2">
-              <BuscadorFiltro
-                disabled={!isModoVer}
-                etiqueta="Buscar pistas"
-                onChange={(valor) => cambiarFiltro('q', valor)}
-                placeholder="Buscar por nombre"
-                valor={filtros.q}
-              />
-              <FiltroSelect
-                className="w-full"
-                disabled={!isModoVer}
-                etiqueta="Filtrar por estado"
-                onChange={handleFiltroQueReencuadra('estado')}
-                opciones={OPCIONES_ESTADO}
-                todos="Todos los estados"
-                valor={filtros.estado}
-              />
-              {isAdmin && (
-                <FiltroSelect
-                  className="w-full"
-                  disabled={!isModoVer}
-                  etiqueta="Filtrar por empresa"
-                  onChange={handleFiltroQueReencuadra('empresa')}
-                  opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
-                  todos="Todas las empresas"
-                  valor={filtros.empresa}
-                />
-              )}
-            </div>
-
             <p className="mt-3 text-sm text-slate-500">
               Activas: <span className="font-semibold text-slate-900">{cantidadActivas}</span>
             </p>
@@ -408,7 +386,7 @@ function PistasPage() {
                 ) : (
                   <>
                     No hay pistas con estos filtros.{' '}
-                    <button className="font-bold text-emerald-800 hover:underline" onClick={limpiarFiltros} type="button">
+                    <button className="font-bold text-emerald-800 hover:underline disabled:opacity-50" disabled={!isModoVer} onClick={limpiarFiltros} type="button">
                       Limpiar filtros
                     </button>
                   </>
@@ -435,11 +413,7 @@ function PistasPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="min-w-0 break-words text-sm font-bold text-slate-950">{pista.nombre}</span>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          pista.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
+                      <span className="shrink-0 text-xs text-slate-600">
                         {pista.activo ? 'Activa' : 'De baja'}
                       </span>
                     </div>

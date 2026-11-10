@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -200,34 +201,16 @@ function EmpresasPage() {
       className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (empresa) => (
-        <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Editar a ${empresa.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(empresa)}
-            title="Editar empresa"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          {usuario?.rol === ROLES.ADMIN && (
-            <button
-              aria-label={`Eliminar a ${empresa.nombre}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-              onClick={() => openDeleteDialog(empresa)}
-              title="Eliminar empresa"
-              type="button"
-            >
-              <Trash2 aria-hidden="true" size={17} />
-            </button>
-          )}
-        </div>
+        <MenuAcciones etiqueta={empresa.nombre} acciones={[
+          { etiqueta: 'Editar', icono: Pencil, onClick: () => openEditDialog(empresa) },
+          usuario?.rol === ROLES.ADMIN && { etiqueta: 'Eliminar', icono: Trash2, onClick: () => openDeleteDialog(empresa), peligrosa: true },
+        ]} />
       ),
     },
   ]
 
   const empresasVisibles = useMemo(
-    () => empresas.filter((empresa) => coincideBusqueda(filtros.q, [empresa.nombre, empresa.email, empresa.telefono])),
+    () => empresas.filter((empresa) => coincideBusqueda(filtros.q, [empresa.nombre])),
     [empresas, filtros],
   )
 
@@ -256,11 +239,11 @@ function EmpresasPage() {
         title="Empresas"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={empresas.length} visibles={empresasVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar empresas"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por nombre, email o telefono"
+          placeholder="Buscar por nombre"
           valor={filtros.q}
         />
       </BarraFiltros>

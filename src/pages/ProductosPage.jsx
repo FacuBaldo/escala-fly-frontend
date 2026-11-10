@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -201,15 +202,13 @@ function ProductosPage() {
 
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', tipo: '', unidad: '', empresa: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
 
   const productosVisibles = useMemo(
     () =>
       productos.filter(
         (producto) =>
-          coincideBusqueda(filtros.q, [producto.nombre, producto.marca]) &&
-          (!filtros.tipo || producto.tipoId === filtros.tipo) &&
-          (!filtros.unidad || producto.unidadMedidaId === filtros.unidad) &&
+          coincideBusqueda(filtros.q, [producto.nombre]) &&
           (!filtros.empresa || producto.empresaId === filtros.empresa),
       ),
     [filtros, productos],
@@ -224,11 +223,7 @@ function ProductosPage() {
     {
       key: 'tipo',
       header: 'Tipo / Categoria',
-      render: (producto) => (
-        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-          {producto.tipo?.nombre}
-        </span>
-      ),
+      render: (producto) => producto.tipo?.nombre,
     },
     {
       key: 'marca',
@@ -263,26 +258,10 @@ function ProductosPage() {
       className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (producto) => (
-        <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Editar ${producto.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(producto)}
-            title="Editar producto"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Eliminar ${producto.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(producto)}
-            title="Eliminar producto"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
-        </div>
+        <MenuAcciones etiqueta={producto.nombre} acciones={[
+          { etiqueta: 'Editar', icono: Pencil, onClick: () => openEditDialog(producto) },
+          { etiqueta: 'Eliminar', icono: Trash2, onClick: () => openDeleteDialog(producto), peligrosa: true },
+        ]} />
       ),
     },
   ]
@@ -314,26 +293,12 @@ function ProductosPage() {
         title="Productos"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={productos.length} visibles={productosVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar productos"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por nombre o marca"
+          placeholder="Buscar por nombre"
           valor={filtros.q}
-        />
-        <FiltroSelect
-          etiqueta="Filtrar por tipo"
-          onChange={(valor) => cambiarFiltro('tipo', valor)}
-          opciones={tipos.map((tipo) => ({ valor: tipo.id, etiqueta: tipo.nombre }))}
-          todos="Todos los tipos"
-          valor={filtros.tipo}
-        />
-        <FiltroSelect
-          etiqueta="Filtrar por unidad de medida"
-          onChange={(valor) => cambiarFiltro('unidad', valor)}
-          opciones={unidades.map((unidad) => ({ valor: unidad.id, etiqueta: `${unidad.nombre} (${unidad.abreviatura})` }))}
-          todos="Todas las unidades"
-          valor={filtros.unidad}
         />
         {isAdmin && (
           <FiltroSelect

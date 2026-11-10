@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowUpRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -179,13 +180,13 @@ function CamposPage() {
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', empresa: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
 
   const camposVisibles = useMemo(
     () =>
       campos.filter(
         (campo) =>
-          coincideBusqueda(filtros.q, [campo.nombre, campo.ubicacion]) &&
+          coincideBusqueda(filtros.q, [campo.nombre]) &&
           (!filtros.empresa || campo.empresaId === filtros.empresa),
       ),
     [campos, filtros],
@@ -232,26 +233,10 @@ function CamposPage() {
       className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (campo) => (
-        <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Editar ${campo.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(campo)}
-            title="Editar campo"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Eliminar ${campo.nombre}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(campo)}
-            title="Eliminar campo"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
-        </div>
+        <MenuAcciones etiqueta={campo.nombre} acciones={[
+          { etiqueta: 'Editar', icono: Pencil, onClick: () => openEditDialog(campo) },
+          { etiqueta: 'Eliminar', icono: Trash2, onClick: () => openDeleteDialog(campo), peligrosa: true },
+        ]} />
       ),
     },
   ]
@@ -283,11 +268,11 @@ function CamposPage() {
         title="Campos"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={campos.length} visibles={camposVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar campos"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por nombre o ubicacion"
+          placeholder="Buscar por nombre"
           valor={filtros.q}
         />
         {isAdmin && (

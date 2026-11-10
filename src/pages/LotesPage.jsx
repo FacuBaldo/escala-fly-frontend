@@ -8,8 +8,8 @@ import PageHeader from '../components/PageHeader'
 import PageLoader from '../components/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
+import BarraFiltros from '../components/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import FiltroSelect from '../components/filtros/FiltroSelect'
 import { getCampoById } from '../api/camposApi'
 import { getPistas } from '../api/pistasApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
@@ -25,17 +25,6 @@ const MODOS = {
   EDITAR_FORMA: 'editar-forma',
 }
 
-// Valores del filtro de estado en la direccion (?estado=activos); vacio es "todos"
-const ESTADOS = {
-  ACTIVOS: 'activos',
-  INACTIVOS: 'inactivos',
-}
-
-const OPCIONES_ESTADO = [
-  { valor: ESTADOS.ACTIVOS, etiqueta: 'Activos' },
-  { valor: ESTADOS.INACTIVOS, etiqueta: 'Dados de baja' },
-]
-
 const loteActionClassName =
   'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 
@@ -46,7 +35,7 @@ function LotesPage() {
   const [campo, setCampo] = useState(null)
   const [pistas, setPistas] = useState([])
   const [lotes, setLotes] = useState([])
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', estado: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '' })
   const [selectedLoteId, setSelectedLoteId] = useState(null)
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
@@ -147,9 +136,7 @@ function LotesPage() {
     () =>
       lotes.filter(
         (lote) =>
-          coincideBusqueda(filtros.q, [lote.nombre, lote.descripcion]) &&
-          (filtros.estado !== ESTADOS.ACTIVOS || lote.activo) &&
-          (filtros.estado !== ESTADOS.INACTIVOS || !lote.activo),
+          coincideBusqueda(filtros.q, [lote.nombre]),
       ),
     [filtros, lotes],
   )
@@ -165,14 +152,6 @@ function LotesPage() {
     () => lotesVisibles.filter((lote) => lote.activo).reduce((total, lote) => total + (lote.superficie || 0), 0),
     [lotesVisibles],
   )
-
-  // Cambiar el estado reencuadra el mapa en los lotes que quedan; la busqueda no,
-  // para que el mapa no salte con cada letra
-  const handleEstadoFiltroChange = (valor) => {
-    cambiarFiltro('estado', valor)
-    setSelectedLoteId(null)
-    setVistaVersion((version) => version + 1)
-  }
 
   const iniciarDibujo = () => {
     setSelectedLoteId(null)
@@ -373,6 +352,16 @@ function LotesPage() {
         </div>
       )}
 
+      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
+        <BuscadorFiltro
+          disabled={!isModoVer}
+          etiqueta="Buscar lotes"
+          onChange={(valor) => cambiarFiltro('q', valor)}
+          placeholder="Buscar por nombre"
+          valor={filtros.q}
+        />
+      </BarraFiltros>
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="relative z-0 h-[28rem] overflow-hidden rounded-lg border border-emerald-100 shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
           <MapaLotes
@@ -396,25 +385,6 @@ function LotesPage() {
                 {lotesVisibles.length} {lotesVisibles.length === 1 ? 'lote' : 'lotes'}
               </span>
             </div>
-            <div className="grid gap-2">
-              <BuscadorFiltro
-                disabled={!isModoVer}
-                etiqueta="Buscar lotes"
-                onChange={(valor) => cambiarFiltro('q', valor)}
-                placeholder="Buscar por nombre"
-                valor={filtros.q}
-              />
-              <FiltroSelect
-                className="w-full"
-                disabled={!isModoVer}
-                etiqueta="Filtrar por estado"
-                onChange={handleEstadoFiltroChange}
-                opciones={OPCIONES_ESTADO}
-                todos="Todos los estados"
-                valor={filtros.estado}
-              />
-            </div>
-
             <p className="mt-3 text-sm text-slate-500">
               Superficie activa: <span className="font-semibold text-slate-900">{formatearSuperficie(superficieActiva)}</span>
             </p>
@@ -428,7 +398,7 @@ function LotesPage() {
                 ) : (
                   <>
                     No hay lotes con estos filtros.{' '}
-                    <button className="font-bold text-emerald-800 hover:underline" onClick={limpiarFiltros} type="button">
+                    <button className="font-bold text-emerald-800 hover:underline disabled:opacity-50" disabled={!isModoVer} onClick={limpiarFiltros} type="button">
                       Limpiar filtros
                     </button>
                   </>
@@ -455,11 +425,7 @@ function LotesPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="min-w-0 break-words text-sm font-bold text-slate-950">{lote.nombre}</span>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          lote.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
+                      <span className="shrink-0 text-xs text-slate-600">
                         {lote.activo ? 'Activo' : 'De baja'}
                       </span>
                     </div>

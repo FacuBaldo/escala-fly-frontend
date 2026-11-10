@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Map, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -11,29 +12,31 @@ import MapaPlanVuelo from '../components/ordenes/MapaPlanVuelo'
 import PanelPlan from '../components/ordenes/PanelPlan'
 import BarraFiltros from '../components/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import FiltroFecha from '../components/filtros/FiltroFecha'
 import FiltroSelect from '../components/filtros/FiltroSelect'
 import SinResultados from '../components/filtros/SinResultados'
 import { createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
 import { getLotes } from '../api/lotesApi'
 import { getAeronaves } from '../api/aeronavesApi'
 import { getProductos } from '../api/productosApi'
+import { getEmpresas } from '../api/empresasApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
-import { coincideBusqueda } from '../utils/filtros'
+import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
-import { ESTADOS_ORDEN, ESTILOS_ESTADO, formatearDistancia, formatearFecha, formatearLitros } from '../utils/ordenes'
-
-const iconButtonClassName =
-  'flex h-9 w-9 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-50'
+import { ESTADOS_ORDEN, formatearDistancia, formatearFecha, formatearLitros } from '../utils/ordenes'
 
 function OrdenesPage() {
+  const { usuario } = useAutenticacion()
+  const isAdmin = usuario?.rol === ROLES.ADMIN
   const { showToast } = useToast()
   const [ordenes, setOrdenes] = useState([])
   const [lotes, setLotes] = useState([])
   const [aeronaves, setAeronaves] = useState([])
   const [productos, setProductos] = useState([])
+  const [empresas, setEmpresas] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -59,38 +62,16 @@ function OrdenesPage() {
     [showToast],
   )
 
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({
-    q: '',
-    estado: '',
-    aeronave: '',
-    desde: '',
-    hasta: '',
-  })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
 
   // Se filtra en el navegador sobre la lista completa: es instantaneo y no repite
   // pedidos al servidor por cada cambio de filtro
   const ordenesVisibles = useMemo(
     () =>
-      ordenes.filter((orden) => {
-        const fecha = orden.fechaPrevista ? String(orden.fechaPrevista).slice(0, 10) : ''
-        const filtraPorFecha = filtros.desde || filtros.hasta
-
-        return (
-          coincideBusqueda(filtros.q, [
-            `#${orden.numero}`,
-            orden.lote?.nombre,
-            orden.lote?.campo?.nombre,
-            orden.aeronave?.matricula,
-            orden.aeronave?.modelo,
-          ]) &&
-          (!filtros.estado || orden.estado === filtros.estado) &&
-          (!filtros.aeronave || orden.aeronaveId === filtros.aeronave) &&
-          // Con un rango de fechas, las ordenes sin fecha prevista no entran
-          (!filtraPorFecha || Boolean(fecha)) &&
-          (!filtros.desde || fecha >= filtros.desde) &&
-          (!filtros.hasta || fecha <= filtros.hasta)
-        )
-      }),
+      ordenes.filter((orden) => (
+          coincideBusqueda(filtros.q, [`#${orden.numero}`]) &&
+          (!filtros.empresa || orden.empresaId === filtros.empresa)
+      )),
     [filtros, ordenes],
   )
 
@@ -117,13 +98,14 @@ function OrdenesPage() {
   useEffect(() => {
     let isActive = true
 
-    Promise.all([getOrdenes(), getLotes(), getAeronaves(), getProductos()])
-      .then(([ordenesData, lotesData, aeronavesData, productosData]) => {
+    Promise.all([getOrdenes(), getLotes(), getAeronaves(), getProductos(), isAdmin ? getEmpresas() : Promise.resolve([])])
+      .then(([ordenesData, lotesData, aeronavesData, productosData, empresasData]) => {
         if (isActive) {
           setOrdenes(ordenesData)
           setLotes(lotesData)
           setAeronaves(aeronavesData)
           setProductos(productosData)
+          setEmpresas(empresasData)
         }
       })
       .catch((requestError) => {
@@ -140,7 +122,7 @@ function OrdenesPage() {
     return () => {
       isActive = false
     }
-  }, [notificarError])
+  }, [isAdmin, notificarError])
 
   const abrirPlan = async (orden) => {
     setOrdenDetalle(orden)
@@ -280,11 +262,7 @@ function OrdenesPage() {
     {
       key: 'estado',
       header: 'Estado',
-      render: (orden) => (
-        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${ESTILOS_ESTADO[orden.estado] || ''}`}>
-          {ESTADOS_ORDEN[orden.estado] || orden.estado}
-        </span>
-      ),
+      render: (orden) => ESTADOS_ORDEN[orden.estado] || orden.estado,
     },
     {
       key: 'actions',
@@ -292,38 +270,11 @@ function OrdenesPage() {
       className: 'w-36 text-center',
       cellClassName: 'text-center',
       render: (orden) => (
-        <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Ver ruta de la orden ${orden.numero}`}
-            className={`${iconButtonClassName} bg-emerald-700 text-white hover:bg-emerald-800`}
-            onClick={() => abrirPlan(orden)}
-            title="Ver ruta en el mapa"
-            type="button"
-          >
-            <Map aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Editar orden ${orden.numero}`}
-            className={`${iconButtonClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
-            onClick={() => {
-              setEditingOrden(orden)
-              setIsDialogOpen(true)
-            }}
-            title="Editar y regenerar ruta"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Eliminar orden ${orden.numero}`}
-            className={`${iconButtonClassName} bg-red-50 text-red-700 hover:bg-red-100`}
-            onClick={() => setOrdenEliminar(orden)}
-            title="Eliminar orden"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
-        </div>
+        <MenuAcciones etiqueta={`orden #${orden.numero}`} acciones={[
+          { etiqueta: 'Ver ruta', icono: Map, onClick: () => abrirPlan(orden) },
+          { etiqueta: 'Editar', icono: Pencil, onClick: () => { setEditingOrden(orden); setIsDialogOpen(true) } },
+          { etiqueta: 'Eliminar', icono: Trash2, onClick: () => setOrdenEliminar(orden), peligrosa: true },
+        ]} />
       ),
     },
   ]
@@ -436,29 +387,22 @@ function OrdenesPage() {
         title="Ordenes de vuelo"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={ordenes.length} visibles={ordenesVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar ordenes"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por numero, lote, campo o aeronave"
+          placeholder="Buscar por número de orden"
           valor={filtros.q}
         />
-        <FiltroSelect
-          etiqueta="Filtrar por estado"
-          onChange={(valor) => cambiarFiltro('estado', valor)}
-          opciones={Object.entries(ESTADOS_ORDEN).map(([valor, etiqueta]) => ({ valor, etiqueta }))}
-          todos="Todos los estados"
-          valor={filtros.estado}
-        />
-        <FiltroSelect
-          etiqueta="Filtrar por aeronave"
-          onChange={(valor) => cambiarFiltro('aeronave', valor)}
-          opciones={aeronaves.map((aeronave) => ({ valor: aeronave.id, etiqueta: `${aeronave.matricula} · ${aeronave.modelo}` }))}
-          todos="Todas las aeronaves"
-          valor={filtros.aeronave}
-        />
-        <FiltroFecha etiqueta="Desde" max={filtros.hasta} onChange={(valor) => cambiarFiltro('desde', valor)} valor={filtros.desde} />
-        <FiltroFecha etiqueta="Hasta" min={filtros.desde} onChange={(valor) => cambiarFiltro('hasta', valor)} valor={filtros.hasta} />
+        {isAdmin && (
+          <FiltroSelect
+            etiqueta="Filtrar por empresa"
+            onChange={(valor) => cambiarFiltro('empresa', valor)}
+            opciones={ordenarOpciones(empresas.map((empresa) => ({ valor: empresa.id, etiqueta: empresa.nombre })))}
+            todos="Todas las empresas"
+            valor={filtros.empresa}
+          />
+        )}
       </BarraFiltros>
 
       <DataTable

@@ -6,8 +6,7 @@ import useAutenticacion from '../context/useAutenticacion'
 
 const OPERATIVOS = [ROLES.ADMIN, ROLES.ENCARGADO]
 
-// Menu agrupado por area de trabajo: lo del dia a dia arriba y la administracion
-// abajo. Una seccion sin items visibles para el rol no se muestra.
+// Una seccion sin items visibles para el rol no se muestra.
 const seccionesMenu = [
   {
     titulo: 'Operacion',
@@ -65,8 +64,14 @@ function AppLayout({ children }) {
 
   const iniciales = usuario?.email?.slice(0, 2).toUpperCase() || 'EF'
   const seccionesVisibles = seccionesMenu
-    .map((seccion) => ({ ...seccion, items: seccion.items.filter((item) => hasRole(usuario, item.roles)) }))
+    .map((seccion) => ({
+      ...seccion,
+      items: seccion.items
+        .filter((item) => hasRole(usuario, item.roles))
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' })),
+    }))
     .filter((seccion) => seccion.items.length > 0)
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' }))
 
   const cerrarEnPantallaChica = () => {
     if (window.innerWidth < 1024) setIsSidebarOpen(false)

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -19,12 +20,6 @@ import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
 import { coincideBusqueda, ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
-
-const estadoBadgeClasses = {
-  ACTIVA: 'bg-emerald-50 text-emerald-800',
-  EN_MANTENIMIENTO: 'bg-amber-50 text-amber-800',
-  INACTIVA: 'bg-slate-100 text-slate-600',
-}
 
 const estadoLabels = {
   ACTIVA: 'Activa',
@@ -190,14 +185,13 @@ function AeronavesPage() {
     empresas.find((empresa) => empresa.id === empresaId)?.nombre
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', estado: '', empresa: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
 
   const aeronavesVisibles = useMemo(
     () =>
       aeronaves.filter(
         (aeronave) =>
-          coincideBusqueda(filtros.q, [aeronave.matricula, aeronave.modelo, aeronave.fabricante]) &&
-          (!filtros.estado || aeronave.estado === filtros.estado) &&
+          coincideBusqueda(filtros.q, [aeronave.matricula]) &&
           (!filtros.empresa || aeronave.empresaId === filtros.empresa),
       ),
     [aeronaves, filtros],
@@ -236,13 +230,7 @@ function AeronavesPage() {
     {
       key: 'estado',
       header: 'Estado',
-      render: (aeronave) => (
-        <span
-          className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${estadoBadgeClasses[aeronave.estado]}`}
-        >
-          {estadoLabels[aeronave.estado]}
-        </span>
-      ),
+      render: (aeronave) => estadoLabels[aeronave.estado] || aeronave.estado,
     },
     {
       key: 'actions',
@@ -250,26 +238,10 @@ function AeronavesPage() {
       className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (aeronave) => (
-        <div className="flex justify-center gap-2">
-          <button
-            aria-label={`Editar ${aeronave.matricula}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-            onClick={() => openEditDialog(aeronave)}
-            title="Editar aeronave"
-            type="button"
-          >
-            <Pencil aria-hidden="true" size={17} />
-          </button>
-          <button
-            aria-label={`Eliminar ${aeronave.matricula}`}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-            onClick={() => openDeleteDialog(aeronave)}
-            title="Eliminar aeronave"
-            type="button"
-          >
-            <Trash2 aria-hidden="true" size={17} />
-          </button>
-        </div>
+        <MenuAcciones etiqueta={aeronave.matricula} acciones={[
+          { etiqueta: 'Editar', icono: Pencil, onClick: () => openEditDialog(aeronave) },
+          { etiqueta: 'Eliminar', icono: Trash2, onClick: () => openDeleteDialog(aeronave), peligrosa: true },
+        ]} />
       ),
     },
   ]
@@ -301,19 +273,12 @@ function AeronavesPage() {
         title="Aeronaves"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={aeronaves.length} visibles={aeronavesVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar aeronaves"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por matricula, modelo o fabricante"
+          placeholder="Buscar por matrícula"
           valor={filtros.q}
-        />
-        <FiltroSelect
-          etiqueta="Filtrar por estado"
-          onChange={(valor) => cambiarFiltro('estado', valor)}
-          opciones={Object.entries(estadoLabels).map(([valor, etiqueta]) => ({ valor, etiqueta }))}
-          todos="Todos los estados"
-          valor={filtros.estado}
         />
         {isAdmin && (
           <FiltroSelect

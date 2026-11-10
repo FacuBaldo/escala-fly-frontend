@@ -166,7 +166,7 @@ function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualiz
 
               {secundarios.map((campo) => (
                 <span
-                  className="shrink-0 rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold text-slate-700"
+                  className="shrink-0 text-sm text-slate-700"
                   key={campo.clave}
                   title={campo.etiqueta}
                 >

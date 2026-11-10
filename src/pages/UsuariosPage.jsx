@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
 import DataTable from '../components/DataTable'
+import MenuAcciones from '../components/MenuAcciones'
 import DeleteDialog from '../components/DeleteDialog'
 import FormDialog from '../components/FormDialog'
 import PageHeader from '../components/PageHeader'
@@ -190,21 +191,18 @@ function UsuariosPage() {
     ({ ADMIN: 'Admin', ENCARGADO: 'Encargado', PILOTO: 'Piloto', CLIENTE: 'Cliente' })[rol] || rol
   const isAdmin = usuario?.rol === ROLES.ADMIN
 
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '', rol: '', empresa: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
 
   const usuariosVisibles = useMemo(
     () =>
       usuarios.filter(
         (usuarioItem) =>
-          coincideBusqueda(filtros.q, [usuarioItem.nombre, usuarioItem.apellido, usuarioItem.email]) &&
-          (!filtros.rol || usuarioItem.rol === filtros.rol) &&
+          coincideBusqueda(filtros.q, [`${usuarioItem.nombre} ${usuarioItem.apellido}`]) &&
           (!filtros.empresa || usuarioItem.empresaId === filtros.empresa),
       ),
     [filtros, usuarios],
   )
 
-  // El encargado no ve administradores en su lista, asi que no se le ofrece ese rol
-  const rolesFiltrables = Object.values(ROLES).filter((rol) => isAdmin || rol !== ROLES.ADMIN)
   const usuarioSesionId = usuario?.id
 
   // Mismas reglas que el backend: un ENCARGADO gestiona pilotos y clientes y edita su propio perfil;
@@ -249,30 +247,10 @@ function UsuariosPage() {
       className: 'w-28 text-center',
       cellClassName: 'text-center',
       render: (usuario) => (
-        <div className="flex justify-center gap-2">
-          {puedeEditar(usuario) && (
-            <button
-              aria-label={`Editar a ${usuario.nombre} ${usuario.apellido}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100"
-              onClick={() => openEditDialog(usuario)}
-              title="Editar usuario"
-              type="button"
-            >
-              <Pencil aria-hidden="true" size={17} />
-            </button>
-          )}
-          {puedeEliminar(usuario) && (
-            <button
-              aria-label={`Eliminar a ${usuario.nombre} ${usuario.apellido}`}
-              className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
-              onClick={() => openDeleteDialog(usuario)}
-              title="Eliminar usuario"
-              type="button"
-            >
-              <Trash2 aria-hidden="true" size={17} />
-            </button>
-          )}
-        </div>
+        <MenuAcciones etiqueta={`${usuario.nombre} ${usuario.apellido}`} acciones={[
+          puedeEditar(usuario) && { etiqueta: 'Editar', icono: Pencil, onClick: () => openEditDialog(usuario) },
+          puedeEliminar(usuario) && { etiqueta: 'Eliminar', icono: Trash2, onClick: () => openDeleteDialog(usuario), peligrosa: true },
+        ]} />
       ),
     },
   ]
@@ -302,19 +280,12 @@ function UsuariosPage() {
         title="Usuarios"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} total={usuarios.length} visibles={usuariosVisibles.length}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
         <BuscadorFiltro
           etiqueta="Buscar usuarios"
           onChange={(valor) => cambiarFiltro('q', valor)}
-          placeholder="Buscar por nombre o email"
+          placeholder="Buscar por nombre"
           valor={filtros.q}
-        />
-        <FiltroSelect
-          etiqueta="Filtrar por rol"
-          onChange={(valor) => cambiarFiltro('rol', valor)}
-          opciones={rolesFiltrables.map((rol) => ({ valor: rol, etiqueta: getRolLabel(rol) }))}
-          todos="Todos los roles"
-          valor={filtros.rol}
         />
         {isAdmin && (
           <FiltroSelect
