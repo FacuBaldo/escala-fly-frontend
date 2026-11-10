@@ -1,12 +1,6 @@
 import apiClient from './apiClient'
 
-const getOrdenes = async ({ loteId, campoId, estado, empresaId } = {}) => {
-  const params = {}
-  if (loteId) params.loteId = loteId
-  if (campoId) params.campoId = campoId
-  if (estado) params.estado = estado
-  if (empresaId) params.empresaId = empresaId
-
+const getOrdenes = async (params = {}) => {
   const response = await apiClient.get('/ordenes', {
     params: Object.keys(params).length > 0 ? params : undefined,
   })

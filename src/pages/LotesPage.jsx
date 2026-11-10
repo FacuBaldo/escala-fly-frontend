@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Archive, ArchiveRestore, ArrowLeft, Check, MapPin, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
 import AppLayout from '../components/compartidos/layout/AppLayout'
@@ -11,11 +11,9 @@ import MapaLotes from '../components/lotes/MapaLotes'
 import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import { getCampoById } from '../api/camposApi'
-import { getPistas } from '../api/pistasApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
 import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
-import { coincideBusqueda } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
 
@@ -33,9 +31,34 @@ function LotesPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [campo, setCampo] = useState(null)
-  const [pistas, setPistas] = useState([])
-  const [lotes, setLotes] = useState([])
   const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '' })
+  const [datosListado, setDatosListado] = useState([])
+  const [paginaListado, setPaginaListado] = useState({ clave: '', pagina: 1 })
+  const [haySiguiente, setHaySiguiente] = useState(false)
+  const [cargandoListado, setCargandoListado] = useState(true)
+  const [primeraCarga, setPrimeraCarga] = useState(true)
+  const [versionListado, setVersionListado] = useState(0)
+  const claveListado = JSON.stringify([filtros.q, campoId])
+  const pagina = paginaListado.clave === claveListado ? paginaListado.pagina : 1
+  const listado = { data: datosListado, page: pagina, hasNextPage: haySiguiente, loading: cargandoListado, recargar: () => setVersionListado((v) => v + 1), setPage: (cambio) => { const siguiente = typeof cambio === 'function' ? cambio(pagina) : cambio; if (siguiente !== pagina) { setCargandoListado(true); setPaginaListado({ clave: claveListado, pagina: siguiente }) } } }
+  useEffect(() => {
+    let vigente = true
+    const timer = setTimeout(() => {
+      setCargandoListado(true)
+      getLotes({ page: pagina, limit: 20, search: filtros.q, campoId })
+        .then((respuesta) => {
+          if (!vigente) return
+          if (!respuesta.data.length && pagina > 1) { setPaginaListado({ clave: claveListado, pagina: pagina - 1 }); return }
+          setDatosListado(respuesta.data)
+          setHaySiguiente(respuesta.pagination.hasNextPage)
+        })
+        .catch((error) => { if (vigente && !error.cierreSesionPorAutenticacion) showToast({ message: getErrorMessage(error, 'No se pudo cargar el listado.'), type: 'error' }) })
+        .finally(() => { if (vigente) { setCargandoListado(false); setPrimeraCarga(false) } })
+    }, 300)
+    return () => { vigente = false; clearTimeout(timer) }
+  }, [pagina, claveListado, filtros.q, campoId, versionListado, showToast])
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [pagina, claveListado])
+  const lotesVisibles = listado.data
   const [selectedLoteId, setSelectedLoteId] = useState(null)
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
@@ -64,23 +87,16 @@ function LotesPage() {
   )
 
   const loadLotes = async () => {
-    try {
-      const data = await getLotes(campoId)
-      setLotes(data)
-    } catch (requestError) {
-      notificarError(requestError, 'No se pudieron cargar los lotes.')
-    }
+    listado.recargar()
   }
 
   useEffect(() => {
     let isActive = true
 
-    Promise.all([getCampoById(campoId), getLotes(campoId), getPistas()])
-      .then(([campoData, lotesData, pistasData]) => {
+    Promise.all([getCampoById(campoId)])
+      .then(([campoData]) => {
         if (isActive) {
           setCampo(campoData)
-          setLotes(lotesData)
-          setPistas(pistasData)
           setVistaVersion((version) => version + 1)
         }
       })
@@ -131,27 +147,6 @@ function LotesPage() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [cancelarModo, isModoVer])
-
-  const lotesVisibles = useMemo(
-    () =>
-      lotes.filter(
-        (lote) =>
-          coincideBusqueda(filtros.q, [lote.nombre]),
-      ),
-    [filtros, lotes],
-  )
-
-  // El ADMIN recibe las pistas de todas las empresas: el lote solo puede usar las de
-  // la empresa de su campo (el backend rechaza las demas)
-  const pistasDelCampo = useMemo(
-    () => (campo ? pistas.filter((pista) => pista.empresaId === campo.empresaId) : []),
-    [campo, pistas],
-  )
-
-  const superficieActiva = useMemo(
-    () => lotesVisibles.filter((lote) => lote.activo).reduce((total, lote) => total + (lote.superficie || 0), 0),
-    [lotesVisibles],
-  )
 
   const iniciarDibujo = () => {
     setSelectedLoteId(null)
@@ -286,10 +281,10 @@ function LotesPage() {
     }
   }
 
-  if (isLoading || !campo) {
+  if (isLoading || primeraCarga || !campo) {
     return (
       <AppLayout>
-        <PageLoader message="Cargando lotes del campo..." />
+        <PageLoader />
       </AppLayout>
     )
   }
@@ -352,17 +347,31 @@ function LotesPage() {
         </div>
       )}
 
-      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
+      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }}>
         <BuscadorFiltro
           disabled={!isModoVer}
           etiqueta="Buscar lotes"
-          onChange={(valor) => cambiarFiltro('q', valor)}
+          onChange={(valor) => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); cambiarFiltro('q', valor) }}
           placeholder="Buscar por nombre"
           valor={filtros.q}
         />
       </BarraFiltros>
+      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
+        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={listado.page === 1 || listado.loading} onClick={() => listado.setPage(listado.page - 1)} type="button">‹</button>
+        {listado.page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={listado.loading} onClick={() => listado.setPage(1)} type="button">1</button>{listado.page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
+        {Array.from({ length: Math.min(3, listado.page) + Number(listado.hasNextPage) }, (_, i) => Math.max(1, listado.page - 2) + i).map((numero) => <button aria-current={numero === listado.page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === listado.page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={listado.loading} key={numero} onClick={() => listado.setPage(numero)} type="button">{numero}</button>)}
+        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
+      </nav>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div aria-busy={listado.loading} className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {listado.loading && (
+          <div className="absolute inset-0 z-10 rounded-lg bg-white" role="status">
+            <div className="sticky top-24 flex items-center justify-center gap-3 py-8 text-sm font-semibold text-emerald-800">
+              <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-100 border-t-emerald-700" />
+              Actualizando resultados...
+            </div>
+          </div>
+        )}
         <section className="relative z-0 h-[28rem] overflow-hidden rounded-lg border border-emerald-100 shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
           <MapaLotes
             isDibujando={modo === MODOS.DIBUJAR}
@@ -381,24 +390,18 @@ function LotesPage() {
           <div className="border-b border-slate-100 px-4 py-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="text-base font-bold text-slate-950">Lotes</h2>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
-                {lotesVisibles.length} {lotesVisibles.length === 1 ? 'lote' : 'lotes'}
-              </span>
             </div>
-            <p className="mt-3 text-sm text-slate-500">
-              Superficie activa: <span className="font-semibold text-slate-900">{formatearSuperficie(superficieActiva)}</span>
-            </p>
           </div>
 
           <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-3">
             {lotesVisibles.length === 0 && (
               <li className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-                {lotes.length === 0 ? (
+                {!hayFiltros ? (
                   'Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.'
                 ) : (
                   <>
                     No hay lotes con estos filtros.{' '}
-                    <button className="font-bold text-emerald-800 hover:underline disabled:opacity-50" disabled={!isModoVer} onClick={limpiarFiltros} type="button">
+                    <button className="font-bold text-emerald-800 hover:underline disabled:opacity-50" disabled={!isModoVer} onClick={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }} type="button">
                       Limpiar filtros
                     </button>
                   </>
@@ -516,7 +519,7 @@ function LotesPage() {
             nombreCampo={campo.nombre}
             onCancel={closeFormDialog}
             onSave={handleSaveForm}
-            pistas={pistasDelCampo}
+            empresaId={campo.empresaId}
           />
         </BaseDialog>
       )}

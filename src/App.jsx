@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import useAutenticacion from './context/useAutenticacion'
 import PageLoader from './components/compartidos/feedback/PageLoader'
+import AppLayout from './components/compartidos/layout/AppLayout'
 import IniciarSesionPage from './pages/IniciarSesionPage'
 import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'
@@ -15,7 +16,6 @@ import ProtectedRoute from './routes/ProtectedRoute'
 import PublicRoute from './routes/PublicRoute'
 import './App.css'
 
-// Los modulos con mapa cargan Leaflet y Geoman; se separan del bundle principal
 const LotesPage = lazy(() => import('./pages/LotesPage'))
 const PistasPage = lazy(() => import('./pages/PistasPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
@@ -62,7 +62,7 @@ function App() {
         path="/campos/:campoId/lotes"
         element={
           <ProtectedRoute roles={rolesOperativos}>
-            <Suspense fallback={<PageLoader message="Cargando mapa..." />}>
+            <Suspense fallback={<AppLayout><PageLoader /></AppLayout>}>
               <LotesPage />
             </Suspense>
           </ProtectedRoute>
@@ -74,7 +74,7 @@ function App() {
         path="/pistas"
         element={
           <ProtectedRoute roles={rolesOperativos}>
-            <Suspense fallback={<PageLoader message="Cargando mapa..." />}>
+            <Suspense fallback={<AppLayout><PageLoader /></AppLayout>}>
               <PistasPage />
             </Suspense>
           </ProtectedRoute>
@@ -84,7 +84,7 @@ function App() {
         path="/ordenes"
         element={
           <ProtectedRoute roles={rolesOperativos}>
-            <Suspense fallback={<PageLoader message="Cargando ordenes..." />}>
+            <Suspense fallback={<AppLayout><PageLoader /></AppLayout>}>
               <OrdenesPage />
             </Suspense>
           </ProtectedRoute>

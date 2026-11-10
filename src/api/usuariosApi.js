@@ -1,7 +1,7 @@
 import apiClient from './apiClient'
 
-const getUsuarios = async () => {
-  const response = await apiClient.get('/usuarios')
+const getUsuarios = async (params = {}) => {
+  const response = await apiClient.get('/usuarios', { params })
 
   return response.data
 }

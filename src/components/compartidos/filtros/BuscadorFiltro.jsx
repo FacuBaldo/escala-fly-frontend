@@ -3,7 +3,7 @@ import { Search, X } from 'lucide-react'
 /** Campo de busqueda con lupa y boton para borrar lo escrito. */
 function BuscadorFiltro({ disabled = false, etiqueta = 'Buscar', onChange, placeholder, valor }) {
   return (
-    <div className="relative min-w-0">
+    <div className="relative h-10 min-w-0">
       <Search
         aria-hidden="true"
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"

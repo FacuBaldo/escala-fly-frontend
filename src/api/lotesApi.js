@@ -1,10 +1,6 @@
 import apiClient from './apiClient'
 
-const getLotes = async (campoId, activo) => {
-  const params = {}
-  if (campoId) params.campoId = campoId
-  if (activo !== undefined) params.activo = activo
-
+const getLotes = async (params = {}) => {
   const response = await apiClient.get('/lotes', {
     params: Object.keys(params).length > 0 ? params : undefined,
   })

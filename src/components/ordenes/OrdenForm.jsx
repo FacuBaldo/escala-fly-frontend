@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import apiClient from '../../api/apiClient'
 import { AlertTriangle, Building2, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
 import EsquemaPatron from './EsquemaPatron'
@@ -10,8 +11,39 @@ import { PATRONES_VUELO, RADIO_GIRO_POR_DEFECTO } from '../../utils/ordenes'
 
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '')
 
-function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes, onCancel, onSave, productos }) {
+function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
+  const [opciones, setOpciones] = useState([])
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [hayMas, setHayMas] = useState(false)
+  const [error, setError] = useState('')
+  const [actual, setActual] = useState(seleccion || null)
+  const callback = useRef(onSeleccionado)
+  useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
+  useEffect(() => {
+    if (disabled) return undefined
+    let vigente = true
+    const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
+      if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
+    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
+    return () => { vigente = false; clearTimeout(timer) }
+  }, [url, page, search, empresaId, activo, disabled])
+  useEffect(() => {
+    if (!value) return undefined
+    const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
+    if (encontrado) { callback.current?.(encontrado); return undefined }
+    let vigente = true
+    apiClient.get(`${url}/${encodeURIComponent(value)}`).then(({ data }) => { if (vigente) { setActual(data); callback.current?.(data) } }).catch(() => {})
+    return () => { vigente = false }
+  }, [url, value, opciones, seleccion, actual])
+  const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
+  return <span className="grid gap-1"><input aria-label={`Buscar ${placeholder}`} className={`h-9 text-sm ${claseCampo}`} disabled={disabled} onChange={(e) => { setPage(1); setSearch(e.target.value) }} placeholder="Buscar..." type="search" value={search} /><select className={`h-11 ${claseCampo}`} disabled={disabled} name={name} onChange={(e) => { const item = opciones.find((opcion) => opcion.id === e.target.value) || null; setActual(item); callback.current?.(item); onChange(e, item) }} required={required} value={value}><option value="">{placeholder}</option>{elegida && !opciones.some((item) => item.id === elegida.id) && <option value={elegida.id}>{etiqueta(elegida)}</option>}{opciones.map((item) => <option key={item.id} value={item.id}>{etiqueta(item)}</option>)}</select>{hayMas && <button className="justify-self-start text-xs font-semibold text-emerald-700" disabled={disabled} onClick={() => setPage((p) => p + 1)} type="button">Cargar 20 más</button>}{error && <span className="text-xs text-red-700">{error}</span>}</span>
+}
+
+function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId }) {
   const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || '')
+  const [loteElegido, setLoteElegido] = useState(null)
+  const [aeronaveElegida, setAeronaveElegida] = useState(null)
   const [form, setForm] = useState(() => ({
     loteId: editingOrden?.loteId || '',
     aeronaveId: editingOrden?.aeronaveId || '',
@@ -48,17 +80,16 @@ function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes
       radioGiroMetros: '',
     }))
     setFilasMezcla([])
+    setLoteElegido(null)
+    setAeronaveElegida(null)
   }
 
   const empresaSeleccionada = !isAdmin || Boolean(empresaId)
-  const lotesDisponibles = isAdmin ? lotes.filter((lote) => lote.empresaId === empresaId) : lotes
-  const aeronavesDisponibles = isAdmin ? aeronaves.filter((aeronave) => aeronave.empresaId === empresaId) : aeronaves
-  const productosDisponibles = isAdmin ? productos.filter((producto) => producto.empresaId === empresaId) : productos
+  const empresaRecursos = isAdmin ? empresaId : empresaSesionId
 
   // Al elegir aeronave se precargan sus valores de fabrica, si los tiene
-  const handleAeronaveChange = (event) => {
+  const handleAeronaveChange = (event, aeronave) => {
     const aeronaveId = event.target.value
-    const aeronave = aeronavesDisponibles.find((item) => item.id === aeronaveId)
 
     setForm((currentForm) => ({
       ...currentForm,
@@ -90,9 +121,8 @@ function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes
     })
   }
 
-  const loteElegido = lotesDisponibles.find((lote) => lote.id === form.loteId)
   const faltanPistas = loteElegido && (!loteElegido.pistaPrincipalId || !loteElegido.pistaCargaId)
-  const puedeGuardar = empresaSeleccionada && !faltanPistas && loteElegido && aeronavesDisponibles.some((aeronave) => aeronave.id === form.aeronaveId)
+  const puedeGuardar = empresaSeleccionada && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
 
   const caldoTotal =
     loteElegido && Number(form.litrosPorHectarea) > 0
@@ -110,18 +140,7 @@ function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes
         <SeccionFormulario descripcion="Selecciona la empresa para ver sus recursos." icono={Building2} titulo="Empresa">
           <label className={claseEtiqueta}>
             Empresa
-            <select
-              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
-              disabled={Boolean(editingOrden)}
-              onChange={handleEmpresaChange}
-              required
-              value={empresaId}
-            >
-              <option value="">Selecciona una empresa</option>
-              {empresas.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>{empresa.nombre}</option>
-              ))}
-            </select>
+            <SelectorRemoto disabled={Boolean(editingOrden)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required url="/empresas" value={empresaId} />
             {editingOrden && <span className={claseAyuda}>La empresa no se puede cambiar en una orden existente.</span>}
           </label>
         </SeccionFormulario>
@@ -134,57 +153,19 @@ function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={claseEtiqueta}>
             Lote
-            <select
-              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
-              disabled={!empresaSeleccionada || Boolean(editingOrden)}
-              name="loteId"
-              onChange={handleChange}
-              required
-              value={form.loteId}
-            >
-              <option disabled value="">
-                {empresaSeleccionada ? 'Selecciona un lote' : 'Selecciona primero una empresa'}
-              </option>
-              {lotesDisponibles.map((lote) => (
-                <option key={lote.id} value={lote.id}>
-                  {lote.campoNombre ? `${lote.campoNombre} · ` : ''}
-                  {lote.nombre} ({formatearSuperficie(lote.superficie)})
-                </option>
-              ))}
-            </select>
+            <SelectorRemoto disabled={!empresaSeleccionada || Boolean(editingOrden)} empresaId={empresaRecursos} etiqueta={(lote) => `${lote.campoNombre ? `${lote.campoNombre} · ` : ''}${lote.nombre} (${formatearSuperficie(lote.superficie)})`} key={`lote-${empresaRecursos}`} name="loteId" onChange={handleChange} onSeleccionado={setLoteElegido} placeholder="Selecciona un lote" required url="/lotes" value={form.loteId} />
             {editingOrden && (
               <span className={claseAyuda}>
                 El lote no se puede cambiar en una orden existente.
               </span>
             )}
-            {isAdmin && empresaSeleccionada && lotesDisponibles.length === 0 && (
-              <span className={claseAyuda}>Esta empresa no tiene lotes disponibles.</span>
-            )}
           </label>
 
           <label className={claseEtiqueta}>
             Aeronave
-            <select
-              className={`h-11 ${claseCampo} disabled:bg-slate-50 disabled:text-slate-500`}
-              disabled={!empresaSeleccionada}
-              name="aeronaveId"
-              onChange={handleAeronaveChange}
-              required
-              value={form.aeronaveId}
-            >
-              <option disabled value="">
-                {empresaSeleccionada ? 'Selecciona una aeronave' : 'Selecciona primero una empresa'}
-              </option>
-              {aeronavesDisponibles.map((aeronave) => (
-                <option key={aeronave.id} value={aeronave.id}>
-                  {aeronave.matricula} · {aeronave.modelo}
-                </option>
-              ))}
-            </select>
+            <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(aeronave) => `${aeronave.matricula} · ${aeronave.modelo}`} key={`aeronave-${empresaRecursos}`} name="aeronaveId" onChange={handleAeronaveChange} onSeleccionado={setAeronaveElegida} placeholder="Selecciona una aeronave" required url="/aeronaves" value={form.aeronaveId} />
             <span className={claseAyuda}>
-              {isAdmin && empresaSeleccionada && aeronavesDisponibles.length === 0
-                ? 'Esta empresa no tiene aeronaves disponibles.'
-                : 'Completa sola el ancho y la capacidad de abajo.'}
+              Completa sola el ancho y la capacidad de abajo.
             </span>
           </label>
         </div>
@@ -334,7 +315,8 @@ function OrdenForm({ aeronaves, editingOrden, empresas, isAdmin, isSaving, lotes
           disabled={!empresaSeleccionada}
           filas={filasMezcla}
           onChange={setFilasMezcla}
-          productos={productosDisponibles}
+          empresaId={empresaRecursos}
+          key={`productos-${empresaRecursos}`}
           superficieHa={Number(loteElegido?.superficie || 0)}
         />
       </SeccionFormulario>

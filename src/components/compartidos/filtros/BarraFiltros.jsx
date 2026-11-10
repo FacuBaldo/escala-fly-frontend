@@ -11,7 +11,7 @@ function BarraFiltros({ children, disabled = false, hayFiltros, onLimpiar }) {
       aria-label="Filtros"
       className="mb-4 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm shadow-emerald-950/5"
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.33fr)_repeat(4,minmax(0,1fr))]">{children}</div>
+      <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.33fr)_repeat(4,minmax(0,1fr))]">{children}</div>
 
       {hayFiltros && (
         <div className="mt-2 flex justify-end">

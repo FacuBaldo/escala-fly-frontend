@@ -40,7 +40,7 @@ function CamposFila({ autoFocus, campos, onChange, valores }) {
  * `onCrear` y `onActualizar` devuelven true si se guardo, para saber si limpiar
  * la fila. Eliminar lo confirma la pantalla con su propio dialogo.
  */
-function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualizar, onCrear, onEliminar, titulo }) {
+function CatalogoEditable({ campos, descripcion, icono: Icono, isLoading = false, items, onActualizar, onCrear, onEliminar, titulo }) {
   const [nuevo, setNuevo] = useState(() => valoresVacios(campos))
   const [editandoId, setEditandoId] = useState(null)
   const [edicion, setEdicion] = useState(null)
@@ -91,7 +91,15 @@ function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualiz
   }
 
   return (
-    <section className="flex min-w-0 flex-col rounded-lg border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+    <section aria-busy={isLoading} className="relative flex min-w-0 flex-col rounded-lg border border-emerald-100 bg-white shadow-sm shadow-emerald-950/5">
+      {isLoading && (
+        <div className="absolute inset-0 z-10 rounded-lg bg-white" role="status">
+          <div className="sticky top-24 flex items-center justify-center gap-3 py-8 text-sm font-semibold text-emerald-800">
+            <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-100 border-t-emerald-700" />
+            Actualizando resultados...
+          </div>
+        </div>
+      )}
       <header className="flex items-start gap-3 border-b border-slate-100 px-5 py-4">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-700 text-white">
           <Icono aria-hidden="true" size={18} />
@@ -99,9 +107,6 @@ function CatalogoEditable({ campos, descripcion, icono: Icono, items, onActualiz
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-base font-bold text-slate-950">{titulo}</h2>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
-              {items.length}
-            </span>
           </div>
           <p className="text-xs leading-5 text-slate-500">{descripcion}</p>
         </div>

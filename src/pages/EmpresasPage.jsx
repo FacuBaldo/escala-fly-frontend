@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import AppLayout from '../components/compartidos/layout/AppLayout'
 import DataTable from '../components/compartidos/tablas/DataTable'
@@ -16,7 +16,6 @@ import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
-import { coincideBusqueda } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
 
 function EmpresasPage() {
@@ -30,34 +29,24 @@ function EmpresasPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const loadEmpresas = async () => {
-    setIsLoading(true)
-
-    try {
-      const data = await getEmpresas()
-      setEmpresas(data)
-    } catch (requestError) {
-      if (requestError.cierreSesionPorAutenticacion) {
-        return
-      }
-
-      showToast({
-        message: getErrorMessage(requestError, 'No se pudieron cargar las empresas.'),
-        type: 'error',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const [page, setPage] = useState(1)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const [version, setVersion] = useState(0)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     let isActive = true
-
-    getEmpresas()
-      .then((data) => {
+    const timer = setTimeout(() => {
+      setIsUpdating(true)
+      getEmpresas({ page, limit: 20, search: filtros.q })
+      .then((result) => {
         if (isActive) {
-          setEmpresas(data)
+          if (result.data.length === 0 && page > 1) {
+            setPage((actual) => actual - 1)
+          } else {
+            setEmpresas(result.data)
+            setHasNextPage(result.pagination.hasNextPage)
+          }
         }
       })
       .catch((requestError) => {
@@ -75,13 +64,17 @@ function EmpresasPage() {
       .finally(() => {
         if (isActive) {
           setIsLoading(false)
+          setIsUpdating(false)
         }
       })
+    }, 300)
 
     return () => {
       isActive = false
+      clearTimeout(timer)
     }
-  }, [showToast])
+  }, [filtros.q, page, showToast, version])
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [filtros.q, page])
 
   const handleSave = async (form) => {
     setIsSaving(true)
@@ -102,7 +95,7 @@ function EmpresasPage() {
           : 'Empresa creada correctamente.',
         type: 'success',
       })
-      await loadEmpresas()
+      setVersion((actual) => actual + 1)
     } catch (requestError) {
       if (requestError.cierreSesionPorAutenticacion) {
         return
@@ -133,7 +126,7 @@ function EmpresasPage() {
           : 'Empresa eliminada correctamente.',
         type: 'success',
       })
-      await loadEmpresas()
+      setVersion((actual) => actual + 1)
     } catch (requestError) {
       if (requestError.cierreSesionPorAutenticacion) {
         return
@@ -209,15 +202,10 @@ function EmpresasPage() {
     },
   ]
 
-  const empresasVisibles = useMemo(
-    () => empresas.filter((empresa) => coincideBusqueda(filtros.q, [empresa.nombre])),
-    [empresas, filtros],
-  )
-
   if (isLoading) {
     return (
       <AppLayout>
-        <PageLoader message="Cargando empresas..." />
+        <PageLoader />
       </AppLayout>
     )
   }
@@ -239,21 +227,28 @@ function EmpresasPage() {
         title="Empresas"
       />
 
-      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={limpiarFiltros}>
+      <BarraFiltros hayFiltros={hayFiltros} onLimpiar={() => { setIsUpdating(true); setPage(1); limpiarFiltros() }}>
         <BuscadorFiltro
           etiqueta="Buscar empresas"
-          onChange={(valor) => cambiarFiltro('q', valor)}
+          onChange={(valor) => { setIsUpdating(true); setPage(1); cambiarFiltro('q', valor) }}
           placeholder="Buscar por nombre"
           valor={filtros.q}
         />
       </BarraFiltros>
 
       <DataTable
+        loading={isUpdating}
         columns={columns}
-        emptyMessage={<SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay empresas cargadas." onLimpiar={limpiarFiltros} />}
+        emptyMessage={<SinResultados hayFiltros={hayFiltros} mensajeVacio="No hay empresas cargadas." onLimpiar={() => { setIsUpdating(true); setPage(1); limpiarFiltros() }} />}
         getRowKey={(empresa) => empresa.id}
-        rows={empresasVisibles}
+        rows={empresas}
       />
+      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
+        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={page === 1 || isUpdating} onClick={() => { setIsUpdating(true); setPage(page - 1) }} type="button">‹</button>
+        {page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={isUpdating} onClick={() => { setIsUpdating(true); setPage(1) }} type="button">1</button>{page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
+        {Array.from({ length: Math.min(3, page) + Number(hasNextPage) }, (_, i) => Math.max(1, page - 2) + i).map((numero) => <button aria-current={numero === page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={isUpdating || numero === page} key={numero} onClick={() => { setIsUpdating(true); setPage(numero) }} type="button">{numero}</button>)}
+        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!hasNextPage || isUpdating} onClick={() => { setIsUpdating(true); setPage(page + 1) }} type="button">›</button>
+      </nav>
 
       {isDialogOpen && (
         <BaseDialog

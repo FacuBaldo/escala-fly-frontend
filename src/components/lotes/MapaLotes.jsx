@@ -73,7 +73,7 @@ function AjustarVista({ lotes, selectedLoteId, ubicacionCampo, vistaVersion }) {
       .catch(() => {})
 
     return () => controller.abort()
-  }, [map, vistaVersion])
+  }, [map, vistaVersion, lotes])
 
   useEffect(() => {
     const lote = lotesRef.current.find((item) => item.id === selectedLoteId)

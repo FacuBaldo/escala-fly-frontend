@@ -3,8 +3,8 @@ import apiClient from './apiClient'
 // Catalogos globales de Configuracion. Todos los roles que cargan productos los
 // leen; solo el ADMIN los modifica.
 
-const getTiposProducto = async () => {
-  const response = await apiClient.get('/tipos-producto')
+const getTiposProducto = async (params) => {
+  const response = await apiClient.get('/tipos-producto', { params })
 
   return response.data
 }
@@ -27,8 +27,8 @@ const deleteTipoProducto = async (id) => {
   return response.data
 }
 
-const getUnidadesMedida = async () => {
-  const response = await apiClient.get('/unidades-medida')
+const getUnidadesMedida = async (params) => {
+  const response = await apiClient.get('/unidades-medida', { params })
 
   return response.data
 }

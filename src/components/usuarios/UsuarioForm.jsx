@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import apiClient from '../../api/apiClient'
 import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
@@ -19,7 +20,36 @@ const rolLabels = {
 
 const LONGITUD_MINIMA_CONTRASENA = 8
 
-function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = false, isSaving, onCancel, onSave }) {
+function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
+  const [opciones, setOpciones] = useState([])
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [hayMas, setHayMas] = useState(false)
+  const [error, setError] = useState('')
+  const [actual, setActual] = useState(seleccion || null)
+  const callback = useRef(onSeleccionado)
+  useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
+  useEffect(() => {
+    if (disabled) return undefined
+    let vigente = true
+    const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
+      if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
+    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
+    return () => { vigente = false; clearTimeout(timer) }
+  }, [url, page, search, empresaId, activo, disabled])
+  useEffect(() => {
+    if (!value) return undefined
+    const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
+    if (encontrado) { callback.current?.(encontrado); return undefined }
+    let vigente = true
+    apiClient.get(`${url}/${encodeURIComponent(value)}`).then(({ data }) => { if (vigente) { setActual(data); callback.current?.(data) } }).catch(() => {})
+    return () => { vigente = false }
+  }, [url, value, opciones, seleccion, actual])
+  const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
+  return <span className="grid gap-1"><input aria-label={`Buscar ${placeholder}`} className={`h-9 text-sm ${claseCampo}`} disabled={disabled} onChange={(e) => { setPage(1); setSearch(e.target.value) }} placeholder="Buscar..." type="search" value={search} /><select className={`h-11 ${claseCampo}`} disabled={disabled} name={name} onChange={(e) => { const item = opciones.find((opcion) => opcion.id === e.target.value) || null; setActual(item); callback.current?.(item); onChange(e, item) }} required={required} value={value}><option value="">{placeholder}</option>{elegida && !opciones.some((item) => item.id === elegida.id) && <option value={elegida.id}>{etiqueta(elegida)}</option>}{opciones.map((item) => <option key={item.id} value={item.id}>{etiqueta(item)}</option>)}</select>{hayMas && <button className="justify-self-start text-xs font-semibold text-emerald-700" disabled={disabled} onClick={() => setPage((p) => p + 1)} type="button">Cargar 20 más</button>}{error && <span className="text-xs text-red-700">{error}</span>}</span>
+}
+
+function UsuarioForm({ editingUsuario, isAdmin, isPropioUsuario = false, isSaving, onCancel, onSave }) {
   // El backend no permite cambiar el propio rol; un ENCARGADO solo asigna pilotos y clientes
   const rolesAsignables = isAdmin ? ['ADMIN', 'ENCARGADO', 'PILOTO', 'CLIENTE'] : ['PILOTO', 'CLIENTE']
   const rolesDisponibles =
@@ -117,20 +147,7 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
         {isAdmin && requiresEmpresa && (
           <label className={claseEtiqueta}>
             Empresa
-            <select
-              className={`h-11 ${claseCampo}`}
-              name="empresaId"
-              onChange={handleChange}
-              required
-              value={form.empresaId}
-            >
-              <option value="">Selecciona una empresa</option>
-              {empresas.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>
-                  {empresa.nombre}
-                </option>
-              ))}
-            </select>
+            <SelectorRemoto name="empresaId" onChange={handleChange} placeholder="Selecciona una empresa" required seleccion={editingUsuario?.empresa} url="/empresas" value={form.empresaId} />
           </label>
         )}
 

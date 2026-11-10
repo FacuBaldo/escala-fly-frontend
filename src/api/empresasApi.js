@@ -1,8 +1,13 @@
 import apiClient from './apiClient'
 
-const getEmpresas = async () => {
-  const response = await apiClient.get('/empresas')
+const getEmpresas = async (params) => {
+  const response = await apiClient.get('/empresas', { params })
 
+  return response.data
+}
+
+const getEmpresaById = async (id) => {
+  const response = await apiClient.get(`/empresas/${id}`)
   return response.data
 }
 
@@ -24,4 +29,4 @@ const deleteEmpresa = async (id) => {
   return response.data
 }
 
-export { createEmpresa, deleteEmpresa, getEmpresas, updateEmpresa }
+export { createEmpresa, deleteEmpresa, getEmpresaById, getEmpresas, updateEmpresa }

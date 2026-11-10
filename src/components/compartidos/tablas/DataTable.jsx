@@ -1,10 +1,18 @@
-function DataTable({ columns, emptyMessage, getRowKey, rows }) {
+function DataTable({ columns, emptyMessage, getRowKey, loading = false, rows }) {
   const [primaryColumn, ...otherColumns] = columns
   const detailColumns = otherColumns.filter((column) => column.key !== 'actions')
   const actionsColumn = otherColumns.find((column) => column.key === 'actions')
 
   return (
-    <section className="min-w-0 rounded-lg border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 md:p-5">
+    <section aria-busy={loading} className="relative min-w-0 rounded-lg border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 md:p-5">
+      {loading && (
+        <div className="absolute inset-0 z-10 rounded-lg bg-white" role="status">
+          <div className="sticky top-24 flex items-center justify-center gap-3 py-8 text-sm font-semibold text-emerald-800">
+            <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-100 border-t-emerald-700" />
+            Actualizando resultados...
+          </div>
+        </div>
+      )}
       <div className="md:hidden">
         {rows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-500">{emptyMessage}</p>
@@ -14,7 +22,7 @@ function DataTable({ columns, emptyMessage, getRowKey, rows }) {
               <li className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" key={getRowKey(row)}>
                 <div className="p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">{primaryColumn.header}</p>
-                  <div className="mt-1 break-words text-base font-bold text-slate-950">
+                  <div className={`mt-1 break-words text-base text-slate-950 ${primaryColumn.mobileCellClassName || 'font-bold'}`}>
                     {primaryColumn.render ? primaryColumn.render(row) : row[primaryColumn.key]}
                   </div>
 

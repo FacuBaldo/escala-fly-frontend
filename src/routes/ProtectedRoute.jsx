@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import PageLoader from '../components/compartidos/feedback/PageLoader'
+import AppLayout from '../components/compartidos/layout/AppLayout'
 import { RUTA_SIN_ACCESO, hasRole } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 
@@ -7,7 +8,7 @@ function ProtectedRoute({ children, roles }) {
   const { status, token, usuario } = useAutenticacion()
 
   if (status === 'loading') {
-    return <PageLoader message="Cargando sesion..." />
+    return <AppLayout><PageLoader /></AppLayout>
   }
 
   if (!token) {

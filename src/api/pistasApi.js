@@ -1,10 +1,6 @@
 import apiClient from './apiClient'
 
-const getPistas = async (empresaId, activo) => {
-  const params = {}
-  if (empresaId) params.empresaId = empresaId
-  if (activo !== undefined) params.activo = activo
-
+const getPistas = async (params = {}) => {
   const response = await apiClient.get('/pistas', {
     params: Object.keys(params).length > 0 ? params : undefined,
   })

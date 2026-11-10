@@ -65,7 +65,7 @@ function AjustarVista({ pistas, selectedPistaId, vistaVersion }) {
 
     const bounds = L.latLngBounds(ubicadas.map((pista) => [pista.latitud, pista.longitud]))
     map.fitBounds(bounds, { padding: [48, 48], maxZoom: ZOOM_PISTA })
-  }, [map, vistaVersion])
+  }, [map, vistaVersion, pistas])
 
   useEffect(() => {
     const pista = pistasRef.current.find((item) => item.id === selectedPistaId)

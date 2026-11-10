@@ -1,8 +1,8 @@
 import apiClient from './apiClient'
 
-const getCampos = async (empresaId) => {
+const getCampos = async (params = {}) => {
   const response = await apiClient.get('/campos', {
-    params: empresaId ? { empresaId } : undefined,
+    params,
   })
 
   return response.data
