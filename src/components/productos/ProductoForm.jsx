@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
   nombre: '',
@@ -52,10 +53,10 @@ function ProductoForm({
   return (
     <div>
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Nombre del producto
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="nombre"
             onChange={handleChange}
             placeholder="Ej: Glifosato, Atrazina..."
@@ -66,10 +67,10 @@ function ProductoForm({
         </label>
 
         {showEmpresa && (
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Empresa
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="empresaId"
               onChange={handleChange}
               required
@@ -88,10 +89,10 @@ function ProductoForm({
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Tipo / Categoria
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="tipoId"
               onChange={handleChange}
               required
@@ -111,10 +112,10 @@ function ProductoForm({
             )}
           </label>
 
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Marca (Opcional)
             <input
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="marca"
               onChange={handleChange}
               placeholder="Ej: Syngenta, Bayer..."
@@ -124,10 +125,10 @@ function ProductoForm({
           </label>
         </div>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Unidad de medida
           <select
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="unidadMedidaId"
             onChange={handleChange}
             required
@@ -151,10 +152,10 @@ function ProductoForm({
           )}
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Descripcion (Opcional)
           <textarea
-            className="rounded-md border border-slate-200 bg-white p-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 min-h-[80px]"
+            className={`min-h-20 py-3 ${claseCampo}`}
             name="descripcion"
             onChange={handleChange}
             placeholder="Notas o especificaciones adicionales..."

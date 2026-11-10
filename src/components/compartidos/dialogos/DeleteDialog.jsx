@@ -14,7 +14,6 @@ function DeleteDialog({
   return (
     <BaseDialog
       isBusy={isDeleting}
-      labelledBy="delete-dialog-title"
       maxWidth="max-w-md"
       onClose={onClose}
       title={

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Ruler, Tags } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
-import DeleteDialog from '../components/DeleteDialog'
-import PageHeader from '../components/PageHeader'
-import PageLoader from '../components/PageLoader'
+import AppLayout from '../components/compartidos/layout/AppLayout'
+import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
+import PageHeader from '../components/compartidos/layout/PageHeader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
 import CatalogoEditable from '../components/configuracion/CatalogoEditable'
 import {
   createTipoProducto,

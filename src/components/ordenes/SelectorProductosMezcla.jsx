@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
+import { claseCampo } from '../compartidos/formularios/estilosFormulario'
 
-const inputClassName =
-  'h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
+const inputClassName = `h-10 text-sm ${claseCampo}`
 
 /**
  * Filas dinamicas de productos con su dosis por hectarea.

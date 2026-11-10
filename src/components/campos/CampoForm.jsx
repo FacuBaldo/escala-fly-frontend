@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
   nombre: '',
@@ -34,10 +35,10 @@ function CampoForm({ editingCampo, empresas, isSaving, onCancel, onSave, showEmp
   return (
     <div>
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Nombre del campo
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="nombre"
             onChange={handleChange}
             required
@@ -47,10 +48,10 @@ function CampoForm({ editingCampo, empresas, isSaving, onCancel, onSave, showEmp
         </label>
 
         {showEmpresa && (
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Empresa
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="empresaId"
               onChange={handleChange}
               required
@@ -68,10 +69,10 @@ function CampoForm({ editingCampo, empresas, isSaving, onCancel, onSave, showEmp
           </label>
         )}
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Ubicacion (Opcional)
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="ubicacion"
             onChange={handleChange}
             type="text"

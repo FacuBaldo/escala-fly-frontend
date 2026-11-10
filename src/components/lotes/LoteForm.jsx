@@ -1,7 +1,5 @@
 import { useState } from 'react'
-
-const inputClassName =
-  'rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
+import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave, pistas = [] }) {
   const [form, setForm] = useState(() => ({
@@ -35,11 +33,11 @@ function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave, pistas
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className={claseEtiqueta}>
         Nombre del lote
         <input
           autoFocus
-          className={`h-11 ${inputClassName}`}
+          className={`h-11 ${claseCampo}`}
           name="nombre"
           onChange={handleChange}
           required
@@ -53,10 +51,10 @@ function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave, pistas
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Pista principal
           <select
-            className={`h-11 ${inputClassName}`}
+            className={`h-11 ${claseCampo}`}
             name="pistaPrincipalId"
             onChange={handleChange}
             value={form.pistaPrincipalId}
@@ -71,10 +69,10 @@ function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave, pistas
           </select>
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Pista de carga
           <select
-            className={`h-11 ${inputClassName}`}
+            className={`h-11 ${claseCampo}`}
             name="pistaCargaId"
             onChange={handleChange}
             value={form.pistaCargaId}
@@ -95,10 +93,10 @@ function LoteForm({ editingLote, isSaving, nombreCampo, onCancel, onSave, pistas
         la misma. Hacen falta las dos para poder generar la ruta de vuelo del lote.
       </p>
 
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className={claseEtiqueta}>
         Descripcion (Opcional)
         <textarea
-          className={`min-h-24 py-2 ${inputClassName}`}
+          className={`min-h-24 py-2 ${claseCampo}`}
           name="descripcion"
           onChange={handleChange}
           value={form.descripcion}

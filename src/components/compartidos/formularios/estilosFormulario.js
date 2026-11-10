@@ -1,4 +1,4 @@
-/** Estilo compartido de inputs, selects y textareas de los formularios. */
+/** Estilos compartidos de inputs, selects y textareas de los formularios. */
 const claseCampo =
   'w-full min-w-0 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100'
 

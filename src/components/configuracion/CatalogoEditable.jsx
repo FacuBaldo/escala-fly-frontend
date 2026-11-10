@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { claseCampo } from '../formulario/estilosFormulario'
+import { claseCampo } from '../compartidos/formularios/estilosFormulario'
 
 const botonIconoClassName =
   'flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-40'

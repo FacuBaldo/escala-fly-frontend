@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import useAutenticacion from './context/useAutenticacion'
-import PageLoader from './components/PageLoader'
+import PageLoader from './components/compartidos/feedback/PageLoader'
 import IniciarSesionPage from './pages/IniciarSesionPage'
 import UsuariosPage from './pages/UsuariosPage'
 import EmpresasPage from './pages/EmpresasPage'

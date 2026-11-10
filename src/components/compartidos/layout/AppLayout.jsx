@@ -1,8 +1,8 @@
 import { LogOut, Menu, Users, Building2, MapPin, Package, Plane, TowerControl, ClipboardList, Settings } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { ROLES, hasRole } from '../auth/roles'
-import useAutenticacion from '../context/useAutenticacion'
+import { ROLES, hasRole } from '../../../auth/roles'
+import useAutenticacion from '../../../context/useAutenticacion'
 
 const OPERATIVOS = [ROLES.ADMIN, ROLES.ENCARGADO]
 

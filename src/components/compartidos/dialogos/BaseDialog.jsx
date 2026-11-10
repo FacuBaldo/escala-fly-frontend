@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { X } from 'lucide-react'
 
-function BaseDialog({ children, isBusy = false, labelledBy, maxWidth = 'max-w-lg', onClose, title }) {
+function BaseDialog({ children, isBusy = false, maxWidth = 'max-w-lg', onClose, title }) {
+  const labelledBy = useId()
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && !isBusy) {

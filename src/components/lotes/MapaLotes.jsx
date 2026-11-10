@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import { formatearSuperficie } from '../../utils/lotes'
 import { buscarLugares, parseCoordenadas } from '../../utils/mapa'
-import BuscadorMapa from './BuscadorMapa'
+import BuscadorMapa from '../compartidos/mapas/BuscadorMapa'
 
 // San Francisco, Cordoba
 const CENTRO_POR_DEFECTO = [-31.4278, -62.0828]

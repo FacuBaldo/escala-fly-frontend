@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MapPin } from 'lucide-react'
-import { claseAyuda, claseCampo, claseEtiqueta } from '../formulario/estilosFormulario'
+import { claseAyuda, claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 /**
  * Datos de la pista. La ubicacion se marca sobre el mapa de la pantalla antes de

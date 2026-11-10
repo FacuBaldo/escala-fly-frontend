@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
   nombre: '',
@@ -34,10 +35,10 @@ function EmpresaForm({ editingEmpresa, isSaving, onCancel, onSave }) {
   return (
     <div>
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Nombre de la empresa
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="nombre"
             onChange={handleChange}
             required
@@ -46,11 +47,11 @@ function EmpresaForm({ editingEmpresa, isSaving, onCancel, onSave }) {
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Correo electronico (Opcional)
           <input
             autoComplete="email"
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="email"
             onChange={handleChange}
             type="email"
@@ -58,10 +59,10 @@ function EmpresaForm({ editingEmpresa, isSaving, onCancel, onSave }) {
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Telefono (Opcional)
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="telefono"
             onChange={handleChange}
             type="text"

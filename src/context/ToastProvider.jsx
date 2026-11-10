@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import NotificationToast from '../components/NotificationToast'
+import NotificationToast from '../components/compartidos/feedback/NotificationToast'
 import ToastContext from './toastContext'
 
 function ToastProvider({ children }) {

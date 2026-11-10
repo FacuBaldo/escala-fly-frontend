@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
   nombre: '',
@@ -57,10 +58,10 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
   return (
     <div>
       <form className="grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Nombre
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="nombre"
             onChange={handleChange}
             required
@@ -69,10 +70,10 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Apellido
           <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="apellido"
             onChange={handleChange}
             required
@@ -81,11 +82,11 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Correo electronico
           <input
             autoComplete="email"
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             name="email"
             onChange={handleChange}
             required
@@ -94,10 +95,10 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           Rol
           <select
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             disabled={isPropioUsuario}
             name="rol"
             onChange={handleChange}
@@ -114,10 +115,10 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
         </label>
 
         {isAdmin && requiresEmpresa && (
-          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+          <label className={claseEtiqueta}>
             Empresa
             <select
-              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className={`h-11 ${claseCampo}`}
               name="empresaId"
               onChange={handleChange}
               required
@@ -133,11 +134,11 @@ function UsuarioForm({ editingUsuario, empresas, isAdmin, isPropioUsuario = fals
           </label>
         )}
 
-        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+        <label className={claseEtiqueta}>
           {editingUsuario ? 'Nueva contrasena' : 'Contrasena'}
           <input
             autoComplete="new-password"
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className={`h-11 ${claseCampo}`}
             minLength={LONGITUD_MINIMA_CONTRASENA}
             name="contrasena"
             onChange={handleChange}

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, Map, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
-import DataTable from '../components/DataTable'
-import MenuAcciones from '../components/MenuAcciones'
-import DeleteDialog from '../components/DeleteDialog'
-import FormDialog from '../components/FormDialog'
-import PageHeader from '../components/PageHeader'
-import PageLoader from '../components/PageLoader'
+import AppLayout from '../components/compartidos/layout/AppLayout'
+import DataTable from '../components/compartidos/tablas/DataTable'
+import MenuAcciones from '../components/compartidos/tablas/MenuAcciones'
+import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
+import BaseDialog from '../components/compartidos/dialogos/BaseDialog'
+import PageHeader from '../components/compartidos/layout/PageHeader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
 import OrdenForm from '../components/ordenes/OrdenForm'
 import MapaPlanVuelo from '../components/ordenes/MapaPlanVuelo'
 import PanelPlan from '../components/ordenes/PanelPlan'
-import BarraFiltros from '../components/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import FiltroSelect from '../components/filtros/FiltroSelect'
-import SinResultados from '../components/filtros/SinResultados'
+import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/compartidos/filtros/FiltroSelect'
+import SinResultados from '../components/compartidos/feedback/SinResultados'
 import { createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
 import { getLotes } from '../api/lotesApi'
 import { getAeronaves } from '../api/aeronavesApi'
@@ -419,8 +419,8 @@ function OrdenesPage() {
       />
 
       {isDialogOpen && (
-        <FormDialog
-          isSaving={isSaving}
+        <BaseDialog
+          isBusy={isSaving}
           maxWidth="max-w-3xl"
           onClose={() => {
             if (!isSaving) {
@@ -443,7 +443,7 @@ function OrdenesPage() {
             onSave={handleSave}
             productos={productos}
           />
-        </FormDialog>
+        </BaseDialog>
       )}
 
       {ordenEliminar && (

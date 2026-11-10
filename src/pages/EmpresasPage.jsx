@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
-import DataTable from '../components/DataTable'
-import MenuAcciones from '../components/MenuAcciones'
-import DeleteDialog from '../components/DeleteDialog'
-import FormDialog from '../components/FormDialog'
-import PageHeader from '../components/PageHeader'
-import PageLoader from '../components/PageLoader'
-import BarraFiltros from '../components/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import SinResultados from '../components/filtros/SinResultados'
-import EmpresaForm from '../components/EmpresaForm'
+import AppLayout from '../components/compartidos/layout/AppLayout'
+import DataTable from '../components/compartidos/tablas/DataTable'
+import MenuAcciones from '../components/compartidos/tablas/MenuAcciones'
+import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
+import BaseDialog from '../components/compartidos/dialogos/BaseDialog'
+import PageHeader from '../components/compartidos/layout/PageHeader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
+import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
+import SinResultados from '../components/compartidos/feedback/SinResultados'
+import EmpresaForm from '../components/empresas/EmpresaForm'
 import { createEmpresa, deleteEmpresa, getEmpresas, updateEmpresa } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
@@ -256,8 +256,8 @@ function EmpresasPage() {
       />
 
       {isDialogOpen && (
-        <FormDialog
-          isSaving={isSaving}
+        <BaseDialog
+          isBusy={isSaving}
           onClose={closeDialog}
           title={editingEmpresa ? 'Editar empresa' : 'Agregar empresa'}
         >
@@ -268,7 +268,7 @@ function EmpresasPage() {
             onCancel={closeDialog}
             onSave={handleSave}
           />
-        </FormDialog>
+        </BaseDialog>
       )}
 
       {deletingEmpresa && (

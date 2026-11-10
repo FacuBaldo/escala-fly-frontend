@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Droplets, Plane, StickyNote } from 'lucide-react'
-import CampoConUnidad from './formulario/CampoConUnidad'
-import SeccionFormulario from './formulario/SeccionFormulario'
-import { claseAyuda, claseCampo, claseEtiqueta } from './formulario/estilosFormulario'
+import CampoConUnidad from '../compartidos/formularios/CampoConUnidad'
+import SeccionFormulario from '../compartidos/formularios/SeccionFormulario'
+import { claseAyuda, claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
   matricula: '',

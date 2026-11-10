@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import PageLoader from '../components/PageLoader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
 import { getDefaultRoute } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 

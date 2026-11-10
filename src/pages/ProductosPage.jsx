@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
-import DataTable from '../components/DataTable'
-import MenuAcciones from '../components/MenuAcciones'
-import DeleteDialog from '../components/DeleteDialog'
-import FormDialog from '../components/FormDialog'
-import PageHeader from '../components/PageHeader'
-import PageLoader from '../components/PageLoader'
-import ProductoForm from '../components/ProductoForm'
-import BarraFiltros from '../components/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import FiltroSelect from '../components/filtros/FiltroSelect'
-import SinResultados from '../components/filtros/SinResultados'
+import AppLayout from '../components/compartidos/layout/AppLayout'
+import DataTable from '../components/compartidos/tablas/DataTable'
+import MenuAcciones from '../components/compartidos/tablas/MenuAcciones'
+import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
+import BaseDialog from '../components/compartidos/dialogos/BaseDialog'
+import PageHeader from '../components/compartidos/layout/PageHeader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
+import ProductoForm from '../components/productos/ProductoForm'
+import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/compartidos/filtros/FiltroSelect'
+import SinResultados from '../components/compartidos/feedback/SinResultados'
 import { createProducto, deleteProducto, getProductos, updateProducto } from '../api/productosApi'
 import { getTiposProducto, getUnidadesMedida } from '../api/catalogosApi'
 import { getEmpresas } from '../api/empresasApi'
@@ -321,8 +321,8 @@ function ProductosPage() {
       />
 
       {isDialogOpen && (
-        <FormDialog
-          isSaving={isSaving}
+        <BaseDialog
+          isBusy={isSaving}
           onClose={closeDialog}
           title={editingProducto ? 'Editar producto' : 'Agregar producto'}
         >
@@ -337,7 +337,7 @@ function ProductosPage() {
             tipos={tipos}
             unidades={unidades}
           />
-        </FormDialog>
+        </BaseDialog>
       )}
 
       {deletingProducto && (

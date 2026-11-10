@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Archive, ArchiveRestore, Check, MapPin, Move, Pencil, Plus, Trash2, X } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
-import DeleteDialog from '../components/DeleteDialog'
-import FormDialog from '../components/FormDialog'
-import PageHeader from '../components/PageHeader'
-import PageLoader from '../components/PageLoader'
+import AppLayout from '../components/compartidos/layout/AppLayout'
+import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
+import BaseDialog from '../components/compartidos/dialogos/BaseDialog'
+import PageHeader from '../components/compartidos/layout/PageHeader'
+import PageLoader from '../components/compartidos/feedback/PageLoader'
 import MapaPistas from '../components/pistas/MapaPistas'
-import BarraFiltros from '../components/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/filtros/BuscadorFiltro'
-import FiltroSelect from '../components/filtros/FiltroSelect'
+import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
+import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
+import FiltroSelect from '../components/compartidos/filtros/FiltroSelect'
 import PistaForm from '../components/pistas/PistaForm'
 import { cambiarEstadoPista, createPista, deletePista, getPistas, updatePista } from '../api/pistasApi'
 import { getEmpresas } from '../api/empresasApi'
@@ -492,8 +492,8 @@ function PistasPage() {
       </div>
 
       {isFormOpen && (
-        <FormDialog
-          isSaving={isSaving}
+        <BaseDialog
+          isBusy={isSaving}
           onClose={closeFormDialog}
           title={editingPista ? 'Editar pista' : 'Nueva pista'}
         >
@@ -507,7 +507,7 @@ function PistasPage() {
             showEmpresa={isAdmin}
             ubicacionInicial={ubicacionPendiente}
           />
-        </FormDialog>
+        </BaseDialog>
       )}
 
       {pistaBaja && (

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { LayersControl, MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import BuscadorMapa from '../lotes/BuscadorMapa'
+import BuscadorMapa from '../compartidos/mapas/BuscadorMapa'
 
 // San Francisco, Cordoba
 const CENTRO_POR_DEFECTO = [-31.4278, -62.0828]
