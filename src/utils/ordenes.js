@@ -66,7 +66,6 @@ const formatearFecha = (fecha) => {
 }
 
 export {
-  COLORES_VIAJE,
   ESTADOS_ORDEN,
   PATRONES_VUELO,
   RADIO_GIRO_POR_DEFECTO,

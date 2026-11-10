@@ -12,12 +12,6 @@ const getLotes = async (campoId, activo) => {
   return response.data
 }
 
-const getLoteById = async (id) => {
-  const response = await apiClient.get(`/lotes/${id}`)
-
-  return response.data
-}
-
 const createLote = async (lote) => {
   const response = await apiClient.post('/lotes', lote)
 
@@ -42,4 +36,4 @@ const deleteLote = async (id) => {
   return response.data
 }
 
-export { cambiarEstadoLote, createLote, deleteLote, getLoteById, getLotes, updateLote }
+export { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote }

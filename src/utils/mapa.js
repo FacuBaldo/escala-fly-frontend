@@ -84,15 +84,10 @@ const geoJsonCoordALatLng = ([lng, lat]) => [lat, lng]
 
 const geoJsonLineaALatLngs = (coordenadas) => coordenadas.map(geoJsonCoordALatLng)
 
-const geoJsonMultiLineaALatLngs = (multiCoordenadas) => multiCoordenadas.map(geoJsonLineaALatLngs)
-
 const geoJsonPoligonoALatLngs = (geometria) => geometria.coordinates.map(geoJsonLineaALatLngs)
 
 export {
   buscarLugares,
-  geoJsonCoordALatLng,
-  geoJsonLineaALatLngs,
-  geoJsonMultiLineaALatLngs,
   geoJsonPoligonoALatLngs,
   parseCoordenadas,
 }

@@ -12,12 +12,6 @@ const getPistas = async (empresaId, activo) => {
   return response.data
 }
 
-const getPistaById = async (id) => {
-  const response = await apiClient.get(`/pistas/${id}`)
-
-  return response.data
-}
-
 const createPista = async (pista) => {
   const response = await apiClient.post('/pistas', pista)
 
@@ -42,4 +36,4 @@ const deletePista = async (id) => {
   return response.data
 }
 
-export { cambiarEstadoPista, createPista, deletePista, getPistaById, getPistas, updatePista }
+export { cambiarEstadoPista, createPista, deletePista, getPistas, updatePista }

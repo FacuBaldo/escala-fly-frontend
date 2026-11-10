@@ -30,4 +30,4 @@ const coincideBusqueda = (busqueda, textos) => {
 const ordenarOpciones = (opciones) =>
   [...opciones].sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, 'es', { sensitivity: 'base' }))
 
-export { coincideBusqueda, normalizarTexto, ordenarOpciones }
+export { coincideBusqueda, ordenarOpciones }
