@@ -19,6 +19,7 @@ import './App.css'
 const LotesPage = lazy(() => import('./pages/LotesPage'))
 const PistasPage = lazy(() => import('./pages/PistasPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
+const MisOrdenesPage = lazy(() => import('./pages/MisOrdenesPage'))
 
 function App() {
   const { token, usuario } = useAutenticacion()
@@ -79,6 +80,10 @@ function App() {
             </Suspense>
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/mis-ordenes"
+        element={<ProtectedRoute roles={[ROLES.PILOTO, ROLES.CLIENTE]}><Suspense fallback={<PageLoader />}><MisOrdenesPage /></Suspense></ProtectedRoute>}
       />
       <Route
         path="/ordenes"

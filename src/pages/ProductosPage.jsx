@@ -20,8 +20,9 @@ import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
 import { ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
+import SelectorEmpresa from '../components/compartidos/formularios/SelectorEmpresa'
 
-function FiltroEmpresa({ valor, onChange, disabled = false }) {
+export function FiltroEmpresa({ valor, onChange, disabled = false }) {
   const [opciones, setOpciones] = useState([])
   const [seleccion, setSeleccion] = useState(null)
   const [page, setPage] = useState(1)
@@ -324,7 +325,7 @@ function ProductosPage() {
           valor={filtros.q}
         />
         {isAdmin && (
-          <FiltroEmpresa
+          <SelectorEmpresa
             url="/empresas"
             etiqueta="Filtrar por empresa"
             onChange={(valor) => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); cambiarFiltro('empresa', valor) }}

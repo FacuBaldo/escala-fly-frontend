@@ -29,6 +29,16 @@ const updateOrden = async (id, orden) => {
   return response.data
 }
 
+const asignarClienteOrden = async (id, clienteId) => {
+  const response = await apiClient.patch(`/ordenes/${id}/cliente`, { clienteId })
+  return response.data
+}
+
+const cambiarEstadoOrden = async (id, estado) => {
+  const response = await apiClient.patch(`/ordenes/${id}/estado`, { estado })
+  return response.data
+}
+
 const regenerarPlan = async (id) => {
   const response = await apiClient.post(`/ordenes/${id}/plan/regenerar`)
 
@@ -42,6 +52,8 @@ const deleteOrden = async (id) => {
 }
 
 export {
+  asignarClienteOrden,
+  cambiarEstadoOrden,
   createOrden,
   deleteOrden,
   getOrdenes,

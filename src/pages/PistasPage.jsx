@@ -7,7 +7,6 @@ import PageHeader from '../components/compartidos/layout/PageHeader'
 import PageLoader from '../components/compartidos/feedback/PageLoader'
 import MapaPistas from '../components/pistas/MapaPistas'
 import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import PistaForm from '../components/pistas/PistaForm'
 import { cambiarEstadoPista, createPista, deletePista, getPistas, updatePista } from '../api/pistasApi'
 import { getEmpresaById, getEmpresas } from '../api/empresasApi'
@@ -17,6 +16,7 @@ import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
 import { ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
+import SelectorEmpresa from '../components/compartidos/formularios/SelectorEmpresa'
 
 const MODOS = {
   VER: 'ver',
@@ -29,7 +29,7 @@ const pistaActionClassName =
 
 const redondear = (valor) => Number(valor.toFixed(6))
 
-function FiltroEmpresa({ valor, onChange, disabled = false }) {
+export function FiltroEmpresa({ valor, onChange, disabled = false }) {
   const [opciones, setOpciones] = useState([])
   const [seleccion, setSeleccion] = useState(null)
   const [page, setPage] = useState(1)
@@ -66,21 +66,21 @@ function PistasPage() {
   const { showToast } = useToast()
   const [empresas, setEmpresas] = useState([])
   const isAdmin = usuario?.rol === ROLES.ADMIN
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { q: '', empresa: '' } : { q: '' })
+  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros(isAdmin ? { empresa: '' } : {})
   const [datosListado, setDatosListado] = useState([])
   const [paginaListado, setPaginaListado] = useState({ clave: '', pagina: 1 })
   const [haySiguiente, setHaySiguiente] = useState(false)
   const [cargandoListado, setCargandoListado] = useState(true)
   const [primeraCarga, setPrimeraCarga] = useState(true)
   const [versionListado, setVersionListado] = useState(0)
-  const claveListado = JSON.stringify([filtros.q, filtros.empresa])
+  const claveListado = JSON.stringify([filtros.empresa])
   const pagina = paginaListado.clave === claveListado ? paginaListado.pagina : 1
   const listado = { data: datosListado, page: pagina, hasNextPage: haySiguiente, loading: cargandoListado, recargar: () => setVersionListado((v) => v + 1), setPage: (cambio) => { const siguiente = typeof cambio === 'function' ? cambio(pagina) : cambio; if (siguiente !== pagina) { setCargandoListado(true); setPaginaListado({ clave: claveListado, pagina: siguiente }) } } }
   useEffect(() => {
     let vigente = true
     const timer = setTimeout(() => {
       setCargandoListado(true)
-      getPistas({ page: pagina, limit: 20, search: filtros.q, empresaId: filtros.empresa || undefined })
+      getPistas({ page: pagina, limit: 20, empresaId: filtros.empresa || undefined })
         .then((respuesta) => {
           if (!vigente) return
           if (!respuesta.data.length && pagina > 1) { setPaginaListado({ clave: claveListado, pagina: pagina - 1 }); return }
@@ -91,7 +91,7 @@ function PistasPage() {
         .finally(() => { if (vigente) { setCargandoListado(false); setPrimeraCarga(false) } })
     }, 300)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [pagina, claveListado, filtros.q, filtros.empresa, versionListado, showToast])
+  }, [pagina, claveListado, filtros.empresa, versionListado, showToast])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [pagina, claveListado])
   const pistasVisibles = listado.data
   const [selectedPistaId, setSelectedPistaId] = useState(null)
@@ -176,7 +176,7 @@ function PistasPage() {
     }
   }, [cancelarModo, isModoVer])
 
-  // Cambiar empresa reencuadra el mapa; la busqueda no, para que no salte con cada letra
+  // Cambiar empresa reencuadra el mapa.
   const handleFiltroQueReencuadra = (clave) => (valor) => {
     setCargandoListado(true)
     setPaginaListado({ clave: '', pagina: 1 })
@@ -373,16 +373,8 @@ function PistasPage() {
         </div>
       )}
 
-      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }}>
-        <BuscadorFiltro
-          disabled={!isModoVer}
-          etiqueta="Buscar pistas"
-          onChange={(valor) => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); cambiarFiltro('q', valor) }}
-          placeholder="Buscar por nombre"
-          valor={filtros.q}
-        />
-        {isAdmin && (
-          <FiltroEmpresa
+      {isAdmin && <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }}>
+          <SelectorEmpresa
             url="/empresas"
             disabled={!isModoVer}
             etiqueta="Filtrar por empresa"
@@ -391,14 +383,7 @@ function PistasPage() {
             todos="Todas las empresas"
             valor={filtros.empresa}
           />
-        )}
-      </BarraFiltros>
-      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
-        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={listado.page === 1 || listado.loading} onClick={() => listado.setPage(listado.page - 1)} type="button">‹</button>
-        {listado.page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={listado.loading} onClick={() => listado.setPage(1)} type="button">1</button>{listado.page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
-        {Array.from({ length: Math.min(3, listado.page) + Number(listado.hasNextPage) }, (_, i) => Math.max(1, listado.page - 2) + i).map((numero) => <button aria-current={numero === listado.page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === listado.page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={listado.loading} key={numero} onClick={() => listado.setPage(numero)} type="button">{numero}</button>)}
-        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
-      </nav>
+      </BarraFiltros>}
 
       <div aria-busy={listado.loading} className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {listado.loading && (
@@ -541,6 +526,13 @@ function PistasPage() {
           </ul>
         </aside>
       </div>
+
+      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
+        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!isModoVer || listado.page === 1 || listado.loading} onClick={() => listado.setPage(listado.page - 1)} type="button">‹</button>
+        {listado.page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={!isModoVer || listado.loading} onClick={() => listado.setPage(1)} type="button">1</button>{listado.page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
+        {Array.from({ length: Math.min(3, listado.page) + Number(listado.hasNextPage) }, (_, i) => Math.max(1, listado.page - 2) + i).map((numero) => <button aria-current={numero === listado.page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === listado.page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={!isModoVer || listado.loading} key={numero} onClick={() => listado.setPage(numero)} type="button">{numero}</button>)}
+        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!isModoVer || !listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
+      </nav>
 
       {isFormOpen && (
         <BaseDialog

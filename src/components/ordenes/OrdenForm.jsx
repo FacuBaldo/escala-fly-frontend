@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import apiClient from '../../api/apiClient'
-import { AlertTriangle, Building2, Droplets, Package, Plane, Route, StickyNote } from 'lucide-react'
+import SelectorEmpresa from '../compartidos/formularios/SelectorEmpresa'
+import SelectorConBusqueda from '../compartidos/formularios/SelectorConBusqueda'
+import { AlertTriangle, Building2, Droplets, Package, Plane, Route, StickyNote, UserRound } from 'lucide-react'
 import SelectorProductosMezcla from './SelectorProductosMezcla'
 import EsquemaPatron from './EsquemaPatron'
 import CampoConUnidad from '../compartidos/formularios/CampoConUnidad'
@@ -11,7 +13,7 @@ import { PATRONES_VUELO, RADIO_GIRO_POR_DEFECTO } from '../../utils/ordenes'
 
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '')
 
-function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
+function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, rol, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
   const [opciones, setOpciones] = useState([])
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -23,11 +25,11 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
   useEffect(() => {
     if (disabled) return undefined
     let vigente = true
-    const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
+    const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(rol ? { rol } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
       if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
     }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [url, page, search, empresaId, activo, disabled])
+  }, [url, page, search, empresaId, activo, rol, disabled])
   useEffect(() => {
     if (!value) return undefined
     const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
@@ -37,7 +39,7 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     return () => { vigente = false }
   }, [url, value, opciones, seleccion, actual])
   const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
-  return <span className="grid gap-1"><input aria-label={`Buscar ${placeholder}`} className={`h-9 text-sm ${claseCampo}`} disabled={disabled} onChange={(e) => { setPage(1); setSearch(e.target.value) }} placeholder="Buscar..." type="search" value={search} /><select className={`h-11 ${claseCampo}`} disabled={disabled} name={name} onChange={(e) => { const item = opciones.find((opcion) => opcion.id === e.target.value) || null; setActual(item); callback.current?.(item); onChange(e, item) }} required={required} value={value}><option value="">{placeholder}</option>{elegida && !opciones.some((item) => item.id === elegida.id) && <option value={elegida.id}>{etiqueta(elegida)}</option>}{opciones.map((item) => <option key={item.id} value={item.id}>{etiqueta(item)}</option>)}</select>{hayMas && <button className="justify-self-start text-xs font-semibold text-emerald-700" disabled={disabled} onClick={() => setPage((p) => p + 1)} type="button">Cargar 20 más</button>}{error && <span className="text-xs text-red-700">{error}</span>}</span>
+  return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
 }
 
 function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId }) {
@@ -47,6 +49,8 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
   const [form, setForm] = useState(() => ({
     loteId: editingOrden?.loteId || '',
     aeronaveId: editingOrden?.aeronaveId || '',
+    pilotoId: editingOrden?.pilotoId || '',
+    clienteId: editingOrden?.clienteId || '',
     anchoAplicacionMetros: editingOrden?.anchoAplicacionMetros ?? '',
     litrosPorHectarea: editingOrden?.litrosPorHectarea ?? '',
     capacidadUtilLitros: editingOrden?.capacidadUtilLitros ?? '',
@@ -75,6 +79,8 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       ...currentForm,
       loteId: '',
       aeronaveId: '',
+      pilotoId: '',
+      clienteId: '',
       anchoAplicacionMetros: '',
       capacidadUtilLitros: '',
       radioGiroMetros: '',
@@ -122,7 +128,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
   }
 
   const faltanPistas = loteElegido && (!loteElegido.pistaPrincipalId || !loteElegido.pistaCargaId)
-  const puedeGuardar = empresaSeleccionada && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
+  const puedeGuardar = empresaSeleccionada && Boolean(form.pilotoId) && Boolean(form.clienteId) && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
 
   const caldoTotal =
     loteElegido && Number(form.litrosPorHectarea) > 0
@@ -134,17 +140,39 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       ? Math.ceil(caldoTotal / Number(form.capacidadUtilLitros))
       : null
 
+  if (editingOrden && ['FINALIZADA', 'CANCELADA'].includes(editingOrden.estado)) {
+    return <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); onSave({ clienteId: form.clienteId }) }}>
+      <p className="text-sm text-slate-600">La orden está cerrada. Podés asignar o cambiar el cliente que puede consultarla.</p>
+      <label className={claseEtiqueta}>Cliente
+        <SelectorRemoto empresaId={empresaRecursos} etiqueta={(cliente) => `${cliente.nombre} ${cliente.apellido}`} name="clienteId" onChange={handleChange} placeholder="Selecciona un cliente" required rol="CLIENTE" seleccion={editingOrden.cliente} url="/usuarios" value={form.clienteId} />
+      </label>
+      <div className="flex gap-2"><button className="rounded-md bg-emerald-700 px-4 py-2 font-bold text-white disabled:opacity-70" disabled={isSaving || !form.clienteId} type="submit">{isSaving ? 'Guardando...' : 'Guardar cliente'}</button><button className="rounded-md border border-slate-200 px-4 py-2 font-bold text-slate-600" disabled={isSaving} onClick={onCancel} type="button">Cancelar</button></div>
+    </form>
+  }
+
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
       {isAdmin && (
         <SeccionFormulario descripcion="Selecciona la empresa para ver sus recursos." icono={Building2} titulo="Empresa">
           <label className={claseEtiqueta}>
             Empresa
-            <SelectorRemoto disabled={Boolean(editingOrden)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required url="/empresas" value={empresaId} />
+            <SelectorEmpresa disabled={Boolean(editingOrden)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required value={empresaId} />
             {editingOrden && <span className={claseAyuda}>La empresa no se puede cambiar en una orden existente.</span>}
           </label>
         </SeccionFormulario>
       )}
+      <SeccionFormulario descripcion="El piloto podrá consultar y ejecutar esta orden." icono={Plane} titulo="Piloto asignado">
+        <label className={claseEtiqueta}>
+          Piloto
+          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(piloto) => `${piloto.nombre} ${piloto.apellido}`} key={`piloto-${empresaRecursos}`} name="pilotoId" onChange={handleChange} placeholder="Selecciona un piloto" required rol="PILOTO" seleccion={editingOrden?.piloto} url="/usuarios" value={form.pilotoId} />
+        </label>
+      </SeccionFormulario>
+      <SeccionFormulario descripcion="El cliente podrá consultar esta orden y su plan de vuelo." icono={UserRound} titulo="Cliente asignado">
+        <label className={claseEtiqueta}>
+          Cliente
+          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(cliente) => `${cliente.nombre} ${cliente.apellido}`} key={`cliente-${empresaRecursos}`} name="clienteId" onChange={handleChange} placeholder="Selecciona un cliente" required rol="CLIENTE" seleccion={editingOrden?.cliente} url="/usuarios" value={form.clienteId} />
+        </label>
+      </SeccionFormulario>
       <SeccionFormulario
         descripcion="Sobre que lote se aplica y con que avion."
         icono={Plane}

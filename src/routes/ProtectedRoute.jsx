@@ -1,13 +1,16 @@
 import { Navigate } from 'react-router-dom'
 import PageLoader from '../components/compartidos/feedback/PageLoader'
 import AppLayout from '../components/compartidos/layout/AppLayout'
-import { RUTA_SIN_ACCESO, hasRole } from '../auth/roles'
+import { ROLES, RUTA_SIN_ACCESO, hasRole } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
 
 function ProtectedRoute({ children, roles }) {
   const { status, token, usuario } = useAutenticacion()
 
   if (status === 'loading') {
+    if (roles?.length && roles.every((rol) => [ROLES.PILOTO, ROLES.CLIENTE].includes(rol))) {
+      return <PageLoader />
+    }
     return <AppLayout><PageLoader /></AppLayout>
   }
 

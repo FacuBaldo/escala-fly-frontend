@@ -8,12 +8,9 @@ import PageHeader from '../components/compartidos/layout/PageHeader'
 import PageLoader from '../components/compartidos/feedback/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
-import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
-import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import { getCampoById } from '../api/camposApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
 import useToast from '../context/useToast'
-import useFiltros from '../hooks/useFiltros'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
 
@@ -31,21 +28,20 @@ function LotesPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [campo, setCampo] = useState(null)
-  const { filtros, cambiarFiltro, limpiarFiltros, hayFiltros } = useFiltros({ q: '' })
   const [datosListado, setDatosListado] = useState([])
   const [paginaListado, setPaginaListado] = useState({ clave: '', pagina: 1 })
   const [haySiguiente, setHaySiguiente] = useState(false)
   const [cargandoListado, setCargandoListado] = useState(true)
   const [primeraCarga, setPrimeraCarga] = useState(true)
   const [versionListado, setVersionListado] = useState(0)
-  const claveListado = JSON.stringify([filtros.q, campoId])
+  const claveListado = JSON.stringify([campoId])
   const pagina = paginaListado.clave === claveListado ? paginaListado.pagina : 1
   const listado = { data: datosListado, page: pagina, hasNextPage: haySiguiente, loading: cargandoListado, recargar: () => setVersionListado((v) => v + 1), setPage: (cambio) => { const siguiente = typeof cambio === 'function' ? cambio(pagina) : cambio; if (siguiente !== pagina) { setCargandoListado(true); setPaginaListado({ clave: claveListado, pagina: siguiente }) } } }
   useEffect(() => {
     let vigente = true
     const timer = setTimeout(() => {
       setCargandoListado(true)
-      getLotes({ page: pagina, limit: 20, search: filtros.q, campoId })
+      getLotes({ page: pagina, limit: 20, campoId })
         .then((respuesta) => {
           if (!vigente) return
           if (!respuesta.data.length && pagina > 1) { setPaginaListado({ clave: claveListado, pagina: pagina - 1 }); return }
@@ -56,7 +52,7 @@ function LotesPage() {
         .finally(() => { if (vigente) { setCargandoListado(false); setPrimeraCarga(false) } })
     }, 300)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [pagina, claveListado, filtros.q, campoId, versionListado, showToast])
+  }, [pagina, claveListado, campoId, versionListado, showToast])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [pagina, claveListado])
   const lotesVisibles = listado.data
   const [selectedLoteId, setSelectedLoteId] = useState(null)
@@ -202,10 +198,6 @@ function LotesPage() {
       setGeometriaPendiente(null)
       setSelectedLoteId(lote.id)
 
-      // Un lote nuevo tiene que quedar a la vista aunque los filtros lo escondieran
-      if (!isEditing && hayFiltros) {
-        limpiarFiltros()
-      }
       showToast({
         message: isEditing
           ? 'Lote actualizado correctamente.'
@@ -347,22 +339,6 @@ function LotesPage() {
         </div>
       )}
 
-      <BarraFiltros disabled={!isModoVer} hayFiltros={hayFiltros} onLimpiar={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }}>
-        <BuscadorFiltro
-          disabled={!isModoVer}
-          etiqueta="Buscar lotes"
-          onChange={(valor) => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); cambiarFiltro('q', valor) }}
-          placeholder="Buscar por nombre"
-          valor={filtros.q}
-        />
-      </BarraFiltros>
-      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
-        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={listado.page === 1 || listado.loading} onClick={() => listado.setPage(listado.page - 1)} type="button">‹</button>
-        {listado.page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={listado.loading} onClick={() => listado.setPage(1)} type="button">1</button>{listado.page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
-        {Array.from({ length: Math.min(3, listado.page) + Number(listado.hasNextPage) }, (_, i) => Math.max(1, listado.page - 2) + i).map((numero) => <button aria-current={numero === listado.page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === listado.page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={listado.loading} key={numero} onClick={() => listado.setPage(numero)} type="button">{numero}</button>)}
-        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
-      </nav>
-
       <div aria-busy={listado.loading} className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {listado.loading && (
           <div className="absolute inset-0 z-10 rounded-lg bg-white" role="status">
@@ -396,16 +372,7 @@ function LotesPage() {
           <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-3">
             {lotesVisibles.length === 0 && (
               <li className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-                {!hayFiltros ? (
-                  'Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.'
-                ) : (
-                  <>
-                    No hay lotes con estos filtros.{' '}
-                    <button className="font-bold text-emerald-800 hover:underline disabled:opacity-50" disabled={!isModoVer} onClick={() => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); limpiarFiltros() }} type="button">
-                      Limpiar filtros
-                    </button>
-                  </>
-                )}
+                Este campo no tiene lotes. Busca la zona en el mapa y usa "Dibujar lote" para crear el primero.
               </li>
             )}
 
@@ -505,6 +472,13 @@ function LotesPage() {
           </ul>
         </aside>
       </div>
+
+      <nav aria-label="Paginación" className="mt-4 flex items-center justify-end gap-1">
+        <button aria-label="Página anterior" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!isModoVer || listado.page === 1 || listado.loading} onClick={() => listado.setPage(listado.page - 1)} type="button">‹</button>
+        {listado.page > 3 && <><button className="h-9 min-w-9 rounded-lg text-sm text-slate-600 hover:bg-emerald-50" disabled={!isModoVer || listado.loading} onClick={() => listado.setPage(1)} type="button">1</button>{listado.page > 4 && <span className="px-1 text-slate-400">…</span>}</>}
+        {Array.from({ length: Math.min(3, listado.page) + Number(listado.hasNextPage) }, (_, i) => Math.max(1, listado.page - 2) + i).map((numero) => <button aria-current={numero === listado.page ? 'page' : undefined} aria-label={`Página ${numero}`} className={`h-9 min-w-9 rounded-lg px-2 text-sm font-semibold ${numero === listado.page ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-emerald-50'}`} disabled={!isModoVer || listado.loading} key={numero} onClick={() => listado.setPage(numero)} type="button">{numero}</button>)}
+        <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!isModoVer || !listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
+      </nav>
 
       {isFormOpen && (
         <BaseDialog

@@ -16,6 +16,8 @@ const getDefaultRoute = (usuario) => {
     return '/ordenes'
   }
 
+  if ([ROLES.PILOTO, ROLES.CLIENTE].includes(usuario.rol)) return '/mis-ordenes'
+
   return RUTA_SIN_ACCESO
 }
 

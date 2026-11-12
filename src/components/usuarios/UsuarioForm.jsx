@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import apiClient from '../../api/apiClient'
+import SelectorEmpresa from '../compartidos/formularios/SelectorEmpresa'
+import SelectorConBusqueda from '../compartidos/formularios/SelectorConBusqueda'
 import { claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
 
 const emptyForm = {
@@ -20,7 +22,7 @@ const rolLabels = {
 
 const LONGITUD_MINIMA_CONTRASENA = 8
 
-function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
+export function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
   const [opciones, setOpciones] = useState([])
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -46,7 +48,7 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     return () => { vigente = false }
   }, [url, value, opciones, seleccion, actual])
   const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
-  return <span className="grid gap-1"><input aria-label={`Buscar ${placeholder}`} className={`h-9 text-sm ${claseCampo}`} disabled={disabled} onChange={(e) => { setPage(1); setSearch(e.target.value) }} placeholder="Buscar..." type="search" value={search} /><select className={`h-11 ${claseCampo}`} disabled={disabled} name={name} onChange={(e) => { const item = opciones.find((opcion) => opcion.id === e.target.value) || null; setActual(item); callback.current?.(item); onChange(e, item) }} required={required} value={value}><option value="">{placeholder}</option>{elegida && !opciones.some((item) => item.id === elegida.id) && <option value={elegida.id}>{etiqueta(elegida)}</option>}{opciones.map((item) => <option key={item.id} value={item.id}>{etiqueta(item)}</option>)}</select>{hayMas && <button className="justify-self-start text-xs font-semibold text-emerald-700" disabled={disabled} onClick={() => setPage((p) => p + 1)} type="button">Cargar 20 más</button>}{error && <span className="text-xs text-red-700">{error}</span>}</span>
+  return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
 }
 
 function UsuarioForm({ editingUsuario, isAdmin, isPropioUsuario = false, isSaving, onCancel, onSave }) {
@@ -147,7 +149,7 @@ function UsuarioForm({ editingUsuario, isAdmin, isPropioUsuario = false, isSavin
         {isAdmin && requiresEmpresa && (
           <label className={claseEtiqueta}>
             Empresa
-            <SelectorRemoto name="empresaId" onChange={handleChange} placeholder="Selecciona una empresa" required seleccion={editingUsuario?.empresa} url="/empresas" value={form.empresaId} />
+            <SelectorEmpresa name="empresaId" onChange={handleChange} placeholder="Selecciona una empresa" required seleccion={editingUsuario?.empresa} value={form.empresaId} />
           </label>
         )}
 

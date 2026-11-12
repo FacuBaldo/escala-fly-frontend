@@ -13,7 +13,7 @@ import PanelPlan from '../components/ordenes/PanelPlan'
 import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import SinResultados from '../components/compartidos/feedback/SinResultados'
-import { createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
+import { asignarClienteOrden, cambiarEstadoOrden, createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
 import { getEmpresaById, getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
@@ -21,10 +21,11 @@ import useToast from '../context/useToast'
 import useFiltros from '../hooks/useFiltros'
 import { ordenarOpciones } from '../utils/filtros'
 import getErrorMessage from '../utils/getErrorMessage'
+import SelectorEmpresa from '../components/compartidos/formularios/SelectorEmpresa'
 import { formatearSuperficie } from '../utils/lotes'
 import { ESTADOS_ORDEN, formatearFecha } from '../utils/ordenes'
 
-function FiltroEmpresa({ valor, onChange, disabled = false }) {
+export function FiltroEmpresa({ valor, onChange, disabled = false }) {
   const [opciones, setOpciones] = useState([])
   const [seleccion, setSeleccion] = useState(null)
   const [page, setPage] = useState(1)
@@ -187,20 +188,21 @@ function OrdenesPage() {
   const handleSave = async (form) => {
     setIsSaving(true)
     const isEditing = Boolean(editingOrden)
+    const ordenCerrada = isEditing && ['FINALIZADA', 'CANCELADA'].includes(editingOrden.estado)
 
     try {
-      const orden = isEditing ? await updateOrden(editingOrden.id, form) : await createOrden(form)
+      const orden = ordenCerrada ? await asignarClienteOrden(editingOrden.id, form.clienteId) : isEditing ? await updateOrden(editingOrden.id, form) : await createOrden(form)
 
       setIsDialogOpen(false)
       setEditingOrden(null)
       showToast({
-        message: isEditing
+        message: ordenCerrada ? 'Cliente asignado correctamente.' : isEditing
           ? `Orden actualizada y ruta regenerada (${orden.planVuelo?.cantidadViajes} viajes).`
           : `Ruta generada en ${orden.planVuelo?.cantidadViajes} viaje(s).`,
         type: 'success',
       })
       await loadOrdenes()
-      await abrirPlan(orden)
+      if (!ordenCerrada) await abrirPlan(orden)
     } catch (requestError) {
       notificarError(requestError, 'No se pudo generar la ruta.')
     } finally {
@@ -234,6 +236,18 @@ function OrdenesPage() {
     }
   }
 
+  const handleCancelar = async (orden) => {
+    if (!window.confirm(`¿Cancelar la orden #${orden.numero}?`)) return
+    try {
+      await cambiarEstadoOrden(orden.id, 'CANCELADA')
+      showToast({ message: 'Orden cancelada.', type: 'success' })
+      await loadOrdenes()
+    } catch (error) {
+      notificarError(error, 'No se pudo cancelar la orden.')
+    }
+  }
+
+
   const columns = [
     {
       key: 'numero',
@@ -263,6 +277,16 @@ function OrdenesPage() {
       ),
     },
     {
+      key: 'piloto',
+      header: 'Piloto',
+      render: (orden) => orden.piloto ? `${orden.piloto.nombre} ${orden.piloto.apellido}` : 'Sin asignar',
+    },
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      render: (orden) => orden.cliente ? `${orden.cliente.nombre} ${orden.cliente.apellido}` : 'Sin asignar',
+    },
+    {
       key: 'estado',
       header: 'Estado',
       render: (orden) => ESTADOS_ORDEN[orden.estado] || orden.estado,
@@ -276,6 +300,7 @@ function OrdenesPage() {
         <MenuAcciones etiqueta={`orden #${orden.numero}`} acciones={[
           { etiqueta: 'Ver ruta', icono: Map, onClick: () => abrirPlan(orden) },
           { etiqueta: 'Editar', icono: Pencil, onClick: () => { setEditingOrden(orden); setIsDialogOpen(true) } },
+          ...(!['FINALIZADA', 'CANCELADA'].includes(orden.estado) ? [{ etiqueta: 'Cancelar orden', icono: AlertTriangle, onClick: () => handleCancelar(orden), peligrosa: true }] : []),
           { etiqueta: 'Eliminar', icono: Trash2, onClick: () => setOrdenEliminar(orden), peligrosa: true },
         ]} />
       ),
@@ -396,7 +421,7 @@ function OrdenesPage() {
           valor={filtros.q}
         />
         {isAdmin && (
-          <FiltroEmpresa
+          <SelectorEmpresa
             url="/empresas"
             etiqueta="Filtrar por empresa"
             onChange={(valor) => { setCargandoListado(true); setPaginaListado({ clave: '', pagina: 1 }); cambiarFiltro('empresa', valor) }}
@@ -453,6 +478,7 @@ function OrdenesPage() {
           />
         </BaseDialog>
       )}
+
 
       {ordenEliminar && (
         <DeleteDialog
