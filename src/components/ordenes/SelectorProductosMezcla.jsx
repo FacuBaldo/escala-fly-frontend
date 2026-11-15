@@ -3,16 +3,21 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { claseCampo } from '../compartidos/formularios/estilosFormulario'
 import apiClient from '../../api/apiClient'
 import SelectorConBusqueda from '../compartidos/formularios/SelectorConBusqueda'
+import NuevoProductoRapido from './NuevoProductoRapido'
 
 const LIMITE = 20
+
+// Se muestra la marca junto al nombre generico: en el campo usan los dos indistintamente
+const etiquetaProducto = (item) => (item.marca ? `${item.nombre} · ${item.marca}` : item.nombre)
 
 /**
  * Primera pagina de productos de la empresa (sin busqueda). Se pide una sola vez al
  * abrir el formulario y la comparten todas las filas: antes cada fila hacia su propio
  * pedido recien al agregarla, y el desplegable se abria vacio mientras llegaba.
  */
-function usePrimeraPaginaProductos(empresaId, disabled) {
-  const clave = disabled ? null : empresaId || 'propia'
+function usePrimeraPaginaProductos(empresaId, disabled, version) {
+  // version cambia al crear un producto desde la orden, para volver a pedir la lista
+  const clave = disabled ? null : `${empresaId || 'propia'}|${version}`
   const [resultado, setResultado] = useState({ clave: undefined, data: [], hasNextPage: false, error: '' })
 
   useEffect(() => {
@@ -31,7 +36,7 @@ function usePrimeraPaginaProductos(empresaId, disabled) {
  * Selector de un producto. Sin texto de busqueda muestra la primera pagina compartida;
  * al escribir o pedir mas, consulta al servidor. Las paginas ya traidas quedan guardadas.
  */
-function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSeleccionado, mensajeVacio }) {
+function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSeleccionado, mensajeVacio, version, onCrear }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [paginas, setPaginas] = useState({})
@@ -40,7 +45,7 @@ function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSelecci
   const callback = useRef(onSeleccionado)
   useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
 
-  const clave = `${search}|${page}`
+  const clave = `${version}|${search}|${page}`
   const pendiente = !(search === '' && page === 1) && !paginas[clave]
 
   useEffect(() => {
@@ -58,8 +63,8 @@ function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSelecci
   const listas = useMemo(() => Array.from({ length: page }, (_, i) => (
     search === '' && i === 0
       ? (primeraCargando ? null : { data: primeraData, hasNextPage: primeraHayMas })
-      : paginas[`${search}|${i + 1}`] || null
-  )), [page, search, paginas, primeraCargando, primeraData, primeraHayMas])
+      : paginas[`${version}|${search}|${i + 1}`] || null
+  )), [page, search, version, paginas, primeraCargando, primeraData, primeraHayMas])
   const opciones = useMemo(
     () => listas.filter(Boolean).flatMap((lista) => lista.data).filter((item, i, todos) => todos.findIndex((otro) => otro.id === item.id) === i),
     [listas],
@@ -81,10 +86,11 @@ function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSelecci
 
   return (
     <SelectorConBusqueda
+      accionExtra={{ etiqueta: (texto) => (texto.trim() ? `+ Crear producto "${texto.trim()}"` : '+ Crear producto nuevo'), onClick: (texto) => onCrear(texto.trim()) }}
       busqueda={search}
       cargando={cargando}
       error={errorVisible}
-      etiqueta={(item) => item.nombre}
+      etiqueta={etiquetaProducto}
       hayMas={hayMas}
       mensajeVacio={mensajeVacio}
       onBuscar={(texto) => { setError(''); setPage(1); setSearch(texto) }}
@@ -107,7 +113,10 @@ const inputClassName = `h-10 text-sm ${claseCampo}`
  */
 function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange, superficieHa }) {
   const [productos, setProductos] = useState({})
-  const primeraPagina = usePrimeraPaginaProductos(empresaId, disabled)
+  const [versionProductos, setVersionProductos] = useState(0)
+  // Fila en la que se esta dando de alta un producto nuevo: { indice, nombre }
+  const [creando, setCreando] = useState(null)
+  const primeraPagina = usePrimeraPaginaProductos(empresaId, disabled, versionProductos)
   const sinProductos = !primeraPagina.cargando && !primeraPagina.error && primeraPagina.data.length === 0
   const actualizarFila = (indice, campo, valor) => {
     onChange(filas.map((fila, i) => (i === indice ? { ...fila, [campo]: valor } : fila)))
@@ -115,7 +124,17 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
 
   const agregarFila = () => onChange([...filas, { productoId: '', dosisPorHectarea: '' }])
 
-  const quitarFila = (indice) => onChange(filas.filter((_, i) => i !== indice))
+  const quitarFila = (indice) => {
+    setCreando(null)
+    onChange(filas.filter((_, i) => i !== indice))
+  }
+
+  const productoCreado = (indice, producto) => {
+    setProductos((actuales) => ({ ...actuales, [producto.id]: producto }))
+    actualizarFila(indice, 'productoId', producto.id)
+    setVersionProductos((version) => version + 1)
+    setCreando(null)
+  }
 
   const productoPorId = (id) => productos[id]
 
@@ -139,7 +158,7 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
           {disabled
             ? 'Selecciona primero una empresa para agregar productos.'
             : sinProductos
-              ? 'Esta empresa todavia no tiene productos cargados.'
+              ? 'Esta empresa todavia no tiene productos cargados. Usa "Agregar producto" y crealo desde la lista.'
               : 'Podes agregar agroquimicos con su dosis por hectarea.'}
         </p>
       )}
@@ -153,7 +172,7 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
 
         return (
           <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_2.25rem] items-center gap-2" key={indice}>
-            <SelectorProducto empresaId={empresaId} mensajeVacio="Esta empresa no tiene productos cargados." onChange={(event) => actualizarFila(indice, 'productoId', event.target.value)} onSeleccionado={(item) => { if (item) setProductos((actuales) => actuales[item.id] === item ? actuales : { ...actuales, [item.id]: item }) }} primeraPagina={primeraPagina} value={fila.productoId} />
+            <SelectorProducto empresaId={empresaId} mensajeVacio="Esta empresa no tiene productos cargados." onCrear={(nombre) => setCreando({ indice, nombre })} version={versionProductos} onChange={(event) => actualizarFila(indice, 'productoId', event.target.value)} onSeleccionado={(item) => { if (item) setProductos((actuales) => actuales[item.id] === item ? actuales : { ...actuales, [item.id]: item }) }} primeraPagina={primeraPagina} value={fila.productoId} />
 
             <span className="relative block">
               <input
@@ -180,6 +199,15 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
             >
               <Trash2 aria-hidden="true" size={16} />
             </button>
+
+            {creando?.indice === indice && (
+              <NuevoProductoRapido
+                empresaId={empresaId}
+                nombreInicial={creando.nombre}
+                onCancelar={() => setCreando(null)}
+                onCreado={(producto) => productoCreado(indice, producto)}
+              />
+            )}
 
             {totalProducto > 0 && (
               <p className="col-span-3 -mt-1 text-xs text-slate-500">
