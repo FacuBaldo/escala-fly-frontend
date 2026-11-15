@@ -8,6 +8,12 @@ const getOrdenes = async (params = {}) => {
   return response.data
 }
 
+const getOrdenById = async (id) => {
+  const response = await apiClient.get(`/ordenes/${id}`)
+
+  return response.data
+}
+
 /**
  * Plan de vuelo con las geometrias de cada viaje, listo para dibujar en el mapa.
  */
@@ -56,6 +62,7 @@ export {
   cambiarEstadoOrden,
   createOrden,
   deleteOrden,
+  getOrdenById,
   getOrdenes,
   getPlanDeOrden,
   regenerarPlan,

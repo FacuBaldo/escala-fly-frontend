@@ -42,12 +42,13 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
   return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
 }
 
-function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId }) {
-  const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || '')
+// loteFijo: cuando la orden se crea desde la pantalla del campo, el lote (y su empresa) ya vienen elegidos
+function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId, loteFijo = null }) {
+  const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || loteFijo?.empresaId || '')
   const [loteElegido, setLoteElegido] = useState(null)
   const [aeronaveElegida, setAeronaveElegida] = useState(null)
   const [form, setForm] = useState(() => ({
-    loteId: editingOrden?.loteId || '',
+    loteId: editingOrden?.loteId || loteFijo?.id || '',
     aeronaveId: editingOrden?.aeronaveId || '',
     pilotoId: editingOrden?.pilotoId || '',
     clienteId: editingOrden?.clienteId || '',
@@ -156,8 +157,9 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
         <SeccionFormulario descripcion="Selecciona la empresa para ver sus recursos." icono={Building2} titulo="Empresa">
           <label className={claseEtiqueta}>
             Empresa
-            <SelectorEmpresa disabled={Boolean(editingOrden)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required value={empresaId} />
+            <SelectorEmpresa disabled={Boolean(editingOrden || loteFijo)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required value={empresaId} />
             {editingOrden && <span className={claseAyuda}>La empresa no se puede cambiar en una orden existente.</span>}
+            {!editingOrden && loteFijo && <span className={claseAyuda}>Es la empresa dueña del campo.</span>}
           </label>
         </SeccionFormulario>
       )}
@@ -181,12 +183,13 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={claseEtiqueta}>
             Lote
-            <SelectorRemoto disabled={!empresaSeleccionada || Boolean(editingOrden)} empresaId={empresaRecursos} etiqueta={(lote) => `${lote.campoNombre ? `${lote.campoNombre} · ` : ''}${lote.nombre} (${formatearSuperficie(lote.superficie)})`} key={`lote-${empresaRecursos}`} name="loteId" onChange={handleChange} onSeleccionado={setLoteElegido} placeholder="Selecciona un lote" required url="/lotes" value={form.loteId} />
+            <SelectorRemoto disabled={!empresaSeleccionada || Boolean(editingOrden || loteFijo)} empresaId={empresaRecursos} etiqueta={(lote) => `${lote.campoNombre ? `${lote.campoNombre} · ` : ''}${lote.nombre} (${formatearSuperficie(lote.superficie)})`} key={`lote-${empresaRecursos}`} name="loteId" onChange={handleChange} onSeleccionado={setLoteElegido} placeholder="Selecciona un lote" required seleccion={loteFijo} url="/lotes" value={form.loteId} />
             {editingOrden && (
               <span className={claseAyuda}>
                 El lote no se puede cambiar en una orden existente.
               </span>
             )}
+            {!editingOrden && loteFijo && <span className={claseAyuda}>La orden se crea para este lote.</span>}
           </label>
 
           <label className={claseEtiqueta}>

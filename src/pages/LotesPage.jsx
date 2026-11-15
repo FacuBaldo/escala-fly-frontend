@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Archive, ArchiveRestore, ArrowLeft, Check, MapPin, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
 import AppLayout from '../components/compartidos/layout/AppLayout'
 import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
@@ -8,8 +8,13 @@ import PageHeader from '../components/compartidos/layout/PageHeader'
 import PageLoader from '../components/compartidos/feedback/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
+import OrdenesDelLote from '../components/lotes/OrdenesDelLote'
+import OrdenForm from '../components/ordenes/OrdenForm'
 import { getCampoById } from '../api/camposApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
+import { createOrden } from '../api/ordenesApi'
+import { ROLES } from '../auth/roles'
+import useAutenticacion from '../context/useAutenticacion'
 import useToast from '../context/useToast'
 import getErrorMessage from '../utils/getErrorMessage'
 import { formatearSuperficie } from '../utils/lotes'
@@ -55,7 +60,14 @@ function LotesPage() {
   }, [pagina, claveListado, campoId, versionListado, showToast])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [pagina, claveListado])
   const lotesVisibles = listado.data
-  const [selectedLoteId, setSelectedLoteId] = useState(null)
+  const { usuario } = useAutenticacion()
+  const isAdmin = usuario?.rol === ROLES.ADMIN
+  const [searchParams] = useSearchParams()
+  // Al volver desde la ruta de una orden se vuelve a marcar el lote del que se salio
+  const [selectedLoteId, setSelectedLoteId] = useState(() => searchParams.get('lote'))
+  const [loteOrden, setLoteOrden] = useState(null)
+  const [isSavingOrden, setIsSavingOrden] = useState(false)
+  const [versionOrdenes, setVersionOrdenes] = useState(0)
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
   const [geometriaPendiente, setGeometriaPendiente] = useState(null)
@@ -273,6 +285,29 @@ function LotesPage() {
     }
   }
 
+  // La ruta de la orden se ve en Ordenes; "volver" trae de nuevo a este campo con el lote marcado
+  const verRutaDeOrden = (ordenId, loteId) => {
+    const volver = `/campos/${campoId}/lotes?lote=${loteId}`
+    navigate(`/ordenes?orden=${encodeURIComponent(ordenId)}&volver=${encodeURIComponent(volver)}`)
+  }
+
+  const handleGuardarOrden = async (form) => {
+    setIsSavingOrden(true)
+
+    try {
+      const orden = await createOrden(form)
+      const loteId = loteOrden.id
+      setLoteOrden(null)
+      setVersionOrdenes((version) => version + 1)
+      showToast({ message: `Ruta generada en ${orden.planVuelo?.cantidadViajes} viaje(s).`, type: 'success' })
+      verRutaDeOrden(orden.id, loteId)
+    } catch (requestError) {
+      notificarError(requestError, 'No se pudo generar la ruta.')
+    } finally {
+      setIsSavingOrden(false)
+    }
+  }
+
   if (isLoading || primeraCarga || !campo) {
     return (
       <AppLayout>
@@ -466,6 +501,16 @@ function LotesPage() {
                       </button>
                     </div>
                   )}
+
+                  {isSelected && isModoVer && (
+                    <OrdenesDelLote
+                      lote={lote}
+                      onAsignarPistas={() => openEditDialog(lote)}
+                      onNuevaOrden={() => setLoteOrden(lote)}
+                      onVerOrden={(orden) => verRutaDeOrden(orden.id, lote.id)}
+                      version={versionOrdenes}
+                    />
+                  )}
                 </li>
               )
             })}
@@ -494,6 +539,25 @@ function LotesPage() {
             onCancel={closeFormDialog}
             onSave={handleSaveForm}
             empresaId={campo.empresaId}
+          />
+        </BaseDialog>
+      )}
+
+      {loteOrden && (
+        <BaseDialog
+          isBusy={isSavingOrden}
+          maxWidth="max-w-3xl"
+          onClose={() => !isSavingOrden && setLoteOrden(null)}
+          title={`Nueva orden · ${loteOrden.nombre}`}
+        >
+          <OrdenForm
+            empresaSesionId={usuario?.empresaId}
+            isAdmin={isAdmin}
+            isSaving={isSavingOrden}
+            key={loteOrden.id}
+            loteFijo={{ ...loteOrden, empresaId: campo.empresaId, campoNombre: campo.nombre }}
+            onCancel={() => setLoteOrden(null)}
+            onSave={handleGuardarOrden}
           />
         </BaseDialog>
       )}

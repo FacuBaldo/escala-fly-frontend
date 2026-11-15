@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Map, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import AppLayout from '../components/compartidos/layout/AppLayout'
 import DataTable from '../components/compartidos/tablas/DataTable'
@@ -13,7 +14,7 @@ import PanelPlan from '../components/ordenes/PanelPlan'
 import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import SinResultados from '../components/compartidos/feedback/SinResultados'
-import { asignarClienteOrden, cambiarEstadoOrden, createOrden, deleteOrden, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
+import { asignarClienteOrden, cambiarEstadoOrden, createOrden, deleteOrden, getOrdenById, getOrdenes, getPlanDeOrden, regenerarPlan, updateOrden } from '../api/ordenesApi'
 import { getEmpresaById, getEmpresas } from '../api/empresasApi'
 import { ROLES } from '../auth/roles'
 import useAutenticacion from '../context/useAutenticacion'
@@ -75,6 +76,13 @@ function OrdenesPage() {
   const [viajeSeleccionado, setViajeSeleccionado] = useState(null)
   const [isCargandoPlan, setIsCargandoPlan] = useState(false)
   const [isRegenerando, setIsRegenerando] = useState(false)
+
+  // Se puede llegar con ?orden=<id> (p. ej. desde el lote dentro del campo) y ?volver=<ruta> para regresar ahi
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const ordenEnUrl = searchParams.get('orden')
+  const volverParam = searchParams.get('volver')
+  const volverA = volverParam?.startsWith('/campos/') ? volverParam : null
 
   const notificarError = useCallback(
     (requestError, fallback) => {
@@ -146,7 +154,7 @@ function OrdenesPage() {
     }
   }, [isAdmin, notificarError])
 
-  const abrirPlan = async (orden) => {
+  const abrirPlan = useCallback(async (orden) => {
     setOrdenDetalle(orden)
     setViajeSeleccionado(null)
     setPlan(null)
@@ -156,12 +164,42 @@ function OrdenesPage() {
       const data = await getPlanDeOrden(orden.id)
       setPlan(data)
       setViajeSeleccionado(data.viajes[0]?.numero ?? null)
+      return true
     } catch (requestError) {
       notificarError(requestError, 'No se pudo cargar el plan de vuelo.')
       setOrdenDetalle(null)
+      return false
     } finally {
       setIsCargandoPlan(false)
     }
+  }, [notificarError])
+
+  const ordenAbiertaDesdeUrl = useRef(null)
+  useEffect(() => {
+    if (!ordenEnUrl || ordenAbiertaDesdeUrl.current === ordenEnUrl) return
+    ordenAbiertaDesdeUrl.current = ordenEnUrl
+    setIsCargandoPlan(true)
+    getOrdenById(ordenEnUrl)
+      .then((orden) => abrirPlan(orden))
+      .catch((requestError) => {
+        notificarError(requestError, 'No se pudo abrir la orden.')
+        setIsCargandoPlan(false)
+        return false
+      })
+      // Si no se pudo abrir, se saca la orden de la URL para no quedar en el cargando
+      .then((abierta) => { if (!abierta) setSearchParams({}, { replace: true }) })
+  }, [ordenEnUrl, abrirPlan, notificarError, setSearchParams])
+
+  const cerrarPlan = () => {
+    setOrdenDetalle(null)
+    setPlan(null)
+
+    if (volverA) {
+      navigate(volverA)
+      return
+    }
+
+    if (ordenEnUrl) setSearchParams({}, { replace: true })
   }
 
   const handleRegenerar = async () => {
@@ -307,7 +345,33 @@ function OrdenesPage() {
     },
   ]
 
-  if (isLoading || primeraCarga) {
+  const cerrarDialogo = () => {
+    if (!isSaving) {
+      setIsDialogOpen(false)
+      setEditingOrden(null)
+    }
+  }
+
+  const dialogoOrden = isDialogOpen && (
+    <BaseDialog
+      isBusy={isSaving}
+      maxWidth="max-w-3xl"
+      onClose={cerrarDialogo}
+      title={editingOrden ? `Editar orden #${editingOrden.numero}` : 'Nueva orden de vuelo'}
+    >
+      <OrdenForm
+        editingOrden={editingOrden}
+        empresaSesionId={usuario?.empresaId}
+        isAdmin={isAdmin}
+        isSaving={isSaving}
+        key={editingOrden?.id || 'nueva-orden'}
+        onCancel={cerrarDialogo}
+        onSave={handleSave}
+      />
+    </BaseDialog>
+  )
+
+  if (isLoading || (primeraCarga && !ordenEnUrl)) {
     return (
       <AppLayout>
         <PageLoader />
@@ -315,33 +379,53 @@ function OrdenesPage() {
     )
   }
 
+  if (ordenEnUrl && !ordenDetalle) {
+    return (
+      <AppLayout>
+        <PageLoader message="Abriendo la orden..." />
+      </AppLayout>
+    )
+  }
+
   // ---------- Vista de detalle con el mapa del plan ----------
   if (ordenDetalle) {
+    const ordenCerrada = ['FINALIZADA', 'CANCELADA'].includes(ordenDetalle.estado)
+
     return (
       <AppLayout>
         <button
           className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 transition hover:text-emerald-950"
-          onClick={() => {
-            setOrdenDetalle(null)
-            setPlan(null)
-          }}
+          onClick={cerrarPlan}
           type="button"
         >
           <ArrowLeft aria-hidden="true" size={16} />
-          Volver a ordenes
+          {volverA ? 'Volver al campo' : 'Volver a ordenes'}
         </button>
 
         <PageHeader
           action={
-            <button
-              className="flex h-10 items-center gap-2 rounded-md border border-emerald-200 bg-white px-4 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={isRegenerando || isCargandoPlan}
-              onClick={handleRegenerar}
-              type="button"
-            >
-              <RefreshCw aria-hidden="true" size={16} />
-              {isRegenerando ? 'Regenerando...' : 'Regenerar ruta'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {!ordenCerrada && (
+                <button
+                  className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isRegenerando || isCargandoPlan}
+                  onClick={() => { setEditingOrden(ordenDetalle); setIsDialogOpen(true) }}
+                  type="button"
+                >
+                  <Pencil aria-hidden="true" size={16} />
+                  Editar orden
+                </button>
+              )}
+              <button
+                className="flex h-10 items-center gap-2 rounded-md border border-emerald-200 bg-white px-4 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isRegenerando || isCargandoPlan}
+                onClick={handleRegenerar}
+                type="button"
+              >
+                <RefreshCw aria-hidden="true" size={16} />
+                {isRegenerando ? 'Regenerando...' : 'Regenerar ruta'}
+              </button>
+            </div>
           }
           subtitle={`${ordenDetalle.lote?.nombre || ''} · ${ordenDetalle.aeronave?.matricula || ''} · ${
             ordenDetalle.anchoAplicacionMetros
@@ -388,6 +472,8 @@ function OrdenesPage() {
             </div>
           </>
         )}
+
+        {dialogoOrden}
       </AppLayout>
     )
   }
@@ -452,32 +538,7 @@ function OrdenesPage() {
         <button aria-label="Página siguiente" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 disabled:opacity-40" disabled={!listado.hasNextPage || listado.loading} onClick={() => listado.setPage(listado.page + 1)} type="button">›</button>
       </nav>
 
-      {isDialogOpen && (
-        <BaseDialog
-          isBusy={isSaving}
-          maxWidth="max-w-3xl"
-          onClose={() => {
-            if (!isSaving) {
-              setIsDialogOpen(false)
-              setEditingOrden(null)
-            }
-          }}
-          title={editingOrden ? `Editar orden #${editingOrden.numero}` : 'Nueva orden de vuelo'}
-        >
-          <OrdenForm
-            editingOrden={editingOrden}
-            empresaSesionId={usuario?.empresaId}
-            isAdmin={isAdmin}
-            isSaving={isSaving}
-            key={editingOrden?.id || 'nueva-orden'}
-            onCancel={() => {
-              setIsDialogOpen(false)
-              setEditingOrden(null)
-            }}
-            onSave={handleSave}
-          />
-        </BaseDialog>
-      )}
+      {dialogoOrden}
 
 
       {ordenEliminar && (
