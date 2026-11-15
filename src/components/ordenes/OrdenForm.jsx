@@ -55,7 +55,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
     anchoAplicacionMetros: editingOrden?.anchoAplicacionMetros ?? '',
     litrosPorHectarea: editingOrden?.litrosPorHectarea ?? '',
     capacidadUtilLitros: editingOrden?.capacidadUtilLitros ?? '',
-    radioGiroMetros: editingOrden?.radioGiroMetros ?? '',
     patron: editingOrden?.patron || 'AUTOMATICO',
     fechaPrevista: soloFecha(editingOrden?.fechaPrevista),
     observaciones: editingOrden?.observaciones || '',
@@ -84,7 +83,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       clienteId: '',
       anchoAplicacionMetros: '',
       capacidadUtilLitros: '',
-      radioGiroMetros: '',
     }))
     setFilasMezcla([])
     setLoteElegido(null)
@@ -103,9 +101,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       aeronaveId,
       anchoAplicacionMetros: aeronave?.anchoAplicacionMetros ?? currentForm.anchoAplicacionMetros,
       capacidadUtilLitros: aeronave?.capacidadUtilLitros ?? currentForm.capacidadUtilLitros,
-      // El radio es de cada avion: si el elegido no lo tiene se propone el habitual,
-      // no el del avion que estaba elegido antes
-      radioGiroMetros: aeronave?.radioGiroMetros ?? RADIO_GIRO_POR_DEFECTO,
     }))
   }
 
@@ -117,7 +112,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       anchoAplicacionMetros: Number(form.anchoAplicacionMetros),
       litrosPorHectarea: Number(form.litrosPorHectarea),
       capacidadUtilLitros: Number(form.capacidadUtilLitros),
-      radioGiroMetros: Number(form.radioGiroMetros),
       fechaPrevista: form.fechaPrevista || null,
       productos: filasMezcla
         .filter((fila) => fila.productoId)
@@ -283,23 +277,21 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Cómo trabaja el avión sobre el lote. Los giros usan el radio configurado de la aeronave."
+        descripcion="Cómo trabaja el avión sobre el lote. Los giros usan el radio de giro fijo de la aeronave."
         icono={Route}
         titulo="Patron y giros"
       >
         <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
-          <CampoConUnidad
-            ayuda="Lo trae la aeronave. Entre 150 y 300 m es lo habitual."
-            etiqueta="Radio de giro"
-            max={1000}
-            min={30}
-            name="radioGiroMetros"
-            onChange={handleChange}
-            placeholder={String(RADIO_GIRO_POR_DEFECTO)}
-            required
-            unidad="m"
-            value={form.radioGiroMetros}
-          />
+          {/* El radio no se carga en la orden: es un dato fijo de la aeronave (se edita en Aeronaves) */}
+          <div className="grid content-start gap-1.5">
+            <span className="text-sm font-semibold text-slate-700">Radio de giro</span>
+            <span className="flex h-11 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+              {aeronaveElegida ? `${aeronaveElegida.radioGiroMetros ?? RADIO_GIRO_POR_DEFECTO} m` : '—'}
+            </span>
+            <span className={claseAyuda}>
+              {aeronaveElegida ? 'Es el de la aeronave. Se cambia en Aeronaves.' : 'Se toma de la aeronave elegida.'}
+            </span>
+          </div>
 
           <fieldset className="grid content-start gap-1.5">
             <legend className="mb-1.5 text-sm font-semibold text-slate-700">Patron de trabajo</legend>

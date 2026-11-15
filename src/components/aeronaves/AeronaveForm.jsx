@@ -6,6 +6,7 @@ import { Droplets, Plane, StickyNote } from 'lucide-react'
 import CampoConUnidad from '../compartidos/formularios/CampoConUnidad'
 import SeccionFormulario from '../compartidos/formularios/SeccionFormulario'
 import { claseAyuda, claseCampo, claseEtiqueta } from '../compartidos/formularios/estilosFormulario'
+import { RADIO_GIRO_POR_DEFECTO } from '../../utils/ordenes'
 
 const emptyForm = {
   matricula: '',
@@ -14,7 +15,7 @@ const emptyForm = {
   estado: 'ACTIVA',
   capacidadUtilLitros: '',
   anchoAplicacionMetros: '',
-  radioGiroMetros: '',
+  radioGiroMetros: String(RADIO_GIRO_POR_DEFECTO),
   observaciones: '',
   empresaId: '',
 }
@@ -64,7 +65,7 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave, showEmpresa
           estado: editingAeronave.estado,
           capacidadUtilLitros: editingAeronave.capacidadUtilLitros ?? '',
           anchoAplicacionMetros: editingAeronave.anchoAplicacionMetros ?? '',
-          radioGiroMetros: editingAeronave.radioGiroMetros ?? '',
+          radioGiroMetros: editingAeronave.radioGiroMetros ?? String(RADIO_GIRO_POR_DEFECTO),
           observaciones: editingAeronave.observaciones || '',
           empresaId: editingAeronave.empresaId,
         }
@@ -88,7 +89,8 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave, showEmpresa
       ...form,
       capacidadUtilLitros: form.capacidadUtilLitros === '' ? null : Number(form.capacidadUtilLitros),
       anchoAplicacionMetros: form.anchoAplicacionMetros === '' ? null : Number(form.anchoAplicacionMetros),
-      radioGiroMetros: form.radioGiroMetros === '' ? null : Number(form.radioGiroMetros),
+      // El radio de giro es obligatorio: es un dato fijo del avion que usan todas sus ordenes
+      radioGiroMetros: Number(form.radioGiroMetros),
     })
   }
 
@@ -164,7 +166,7 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave, showEmpresa
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Opcional: se usan para completar sola la orden de vuelo cuando se elige esta aeronave."
+        descripcion="La capacidad y el ancho son opcionales y completan solos la orden. El radio de giro es obligatorio: todas las rutas del avion lo usan."
         icono={Droplets}
         titulo="Datos de aplicacion"
       >
@@ -193,13 +195,14 @@ function AeronaveForm({ editingAeronave, isSaving, onCancel, onSave, showEmpresa
           />
 
           <CampoConUnidad
-            ayuda="Con el que vira al final de cada pasada. Suele estar entre 150 y 300 m."
+            ayuda="Con el que vira al final de cada pasada. Lo habitual es 300 a 350 m."
             etiqueta="Radio de giro"
             max={1000}
             min={30}
             name="radioGiroMetros"
             onChange={handleChange}
-            placeholder="200"
+            placeholder={String(RADIO_GIRO_POR_DEFECTO)}
+            required
             unidad="m"
             value={form.radioGiroMetros}
           />
