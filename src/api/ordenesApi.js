@@ -57,6 +57,22 @@ const deleteOrden = async (id) => {
   return response.data
 }
 
+// Orden del cargador: lo que lleva de cada producto cada carga del plan
+const getCargasDeOrden = async (id) => {
+  const response = await apiClient.get(`/ordenes/${id}/cargas`)
+  return response.data
+}
+
+const actualizarCargasDeOrden = async (id, cargas) => {
+  const response = await apiClient.put(`/ordenes/${id}/cargas`, { cargas })
+  return response.data
+}
+
+const restablecerCargasDeOrden = async (id) => {
+  const response = await apiClient.post(`/ordenes/${id}/cargas/restablecer`)
+  return response.data
+}
+
 export {
   asignarClienteOrden,
   cambiarEstadoOrden,
@@ -68,3 +84,6 @@ export {
   regenerarPlan,
   updateOrden,
 }
+
+// Orden del cargador (export aparte para no mezclarlo con el resto de la API de ordenes)
+export { actualizarCargasDeOrden, getCargasDeOrden, restablecerCargasDeOrden }

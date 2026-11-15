@@ -20,6 +20,7 @@ const LotesPage = lazy(() => import('./pages/LotesPage'))
 const PistasPage = lazy(() => import('./pages/PistasPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 const MisOrdenesPage = lazy(() => import('./pages/MisOrdenesPage'))
+const CargadorPage = lazy(() => import('./pages/CargadorPage'))
 
 function App() {
   const { token, usuario } = useAutenticacion()
@@ -94,6 +95,11 @@ function App() {
             </Suspense>
           </ProtectedRoute>
         }
+      />
+      {/* Hoja imprimible para el cargador; sin el menu de la aplicacion */}
+      <Route
+        path="/ordenes/:ordenId/cargador"
+        element={<ProtectedRoute roles={[...rolesOperativos, ROLES.PILOTO]}><Suspense fallback={<PageLoader />}><CargadorPage /></Suspense></ProtectedRoute>}
       />
       <Route
         path="/productos"

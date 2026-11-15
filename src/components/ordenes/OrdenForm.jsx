@@ -67,6 +67,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
     (editingOrden?.productos || []).map((item) => ({
       productoId: item.productoId,
       dosisPorHectarea: item.dosisPorHectarea ?? '',
+      cantidadTotalCliente: item.cantidadTotalCliente ?? '',
     })),
   )
 
@@ -121,6 +122,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
         .map((fila) => ({
           productoId: fila.productoId,
           dosisPorHectarea: fila.dosisPorHectarea === '' ? null : Number(fila.dosisPorHectarea),
+          cantidadTotalCliente: fila.cantidadTotalCliente === '' || fila.cantidadTotalCliente === undefined ? null : Number(fila.cantidadTotalCliente),
         })),
     })
   }
@@ -335,7 +337,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Opcional: que agroquimicos lleva la mezcla y en que dosis."
+        descripcion="Opcional: que agroquimicos lleva la mezcla, en que dosis y cuanto trajo el cliente. Al generar la ruta se reparten entre las cargas."
         icono={Package}
         titulo="Productos"
       >

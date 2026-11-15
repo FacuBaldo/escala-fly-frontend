@@ -64,7 +64,7 @@ function NuevoProductoRapido({ empresaId, nombreInicial = '', onCreado, onCancel
   const sinCatalogos = catalogos && (catalogos.tipos.length === 0 || catalogos.unidades.length === 0)
 
   return (
-    <div className="col-span-3 grid gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3" onKeyDown={alPresionarTecla} role="group" aria-label="Nuevo producto">
+    <div className="col-span-full grid gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3" onKeyDown={alPresionarTecla} role="group" aria-label="Nuevo producto">
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-900">Nuevo producto</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <input aria-label="Nombre del producto" className={claseInput} disabled={guardando} onChange={cambiar('nombre')} placeholder="Nombre genérico (ej: Glifosato)" ref={nombreRef} value={datos.nombre} />
