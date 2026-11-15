@@ -300,7 +300,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
 
           <fieldset className="grid content-start gap-1.5">
             <legend className="mb-1.5 text-sm font-semibold text-slate-700">Patron de trabajo</legend>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {Object.entries(PATRONES_VUELO).map(([valor, { nombre, subtitulo, descripcion }]) => {
                 const elegido = form.patron === valor
 
