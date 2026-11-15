@@ -128,7 +128,8 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
   }
 
   const faltanPistas = loteElegido && (!loteElegido.pistaPrincipalId || !loteElegido.pistaCargaId)
-  const puedeGuardar = empresaSeleccionada && Boolean(form.pilotoId) && Boolean(form.clienteId) && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
+  // El piloto es opcional: se puede asignar o cambiar despues de crear la orden
+  const puedeGuardar = empresaSeleccionada && Boolean(form.clienteId) && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
 
   const caldoTotal =
     loteElegido && Number(form.litrosPorHectarea) > 0
@@ -161,10 +162,11 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
           </label>
         </SeccionFormulario>
       )}
-      <SeccionFormulario descripcion="El piloto podrá consultar y ejecutar esta orden." icono={Plane} titulo="Piloto asignado">
+      <SeccionFormulario descripcion="Opcional. El piloto podrá consultar y ejecutar esta orden." icono={Plane} titulo="Piloto asignado">
         <label className={claseEtiqueta}>
           Piloto
-          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(piloto) => `${piloto.nombre} ${piloto.apellido}`} key={`piloto-${empresaRecursos}`} name="pilotoId" onChange={handleChange} placeholder="Selecciona un piloto" required rol="PILOTO" seleccion={editingOrden?.piloto} url="/usuarios" value={form.pilotoId} />
+          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(piloto) => `${piloto.nombre} ${piloto.apellido}`} key={`piloto-${empresaRecursos}`} name="pilotoId" onChange={handleChange} placeholder="Sin piloto por ahora" rol="PILOTO" seleccion={editingOrden?.piloto} url="/usuarios" value={form.pilotoId} />
+          <span className={claseAyuda}>Se puede asignar o cambiar más adelante editando la orden.</span>
         </label>
       </SeccionFormulario>
       <SeccionFormulario descripcion="El cliente podrá consultar esta orden y su plan de vuelo." icono={UserRound} titulo="Cliente asignado">
