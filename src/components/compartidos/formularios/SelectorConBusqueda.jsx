@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
-function SelectorConBusqueda({ value, seleccion, opciones, etiqueta, placeholder, disabled, required, busqueda, onBuscar, onSeleccionar, hayMas, onCargarMas, error }) {
+// cargando (opcional): true mientras llega la lista; false cuando ya llego. Si se informa,
+// el desplegable muestra "Cargando..." o el mensaje de lista vacia en lugar de quedar en blanco.
+function SelectorConBusqueda({ value, seleccion, opciones, etiqueta, placeholder, disabled, required, busqueda, onBuscar, onSeleccionar, hayMas, onCargarMas, error, cargando, mensajeVacio }) {
   const id = useId()
   const inputRef = useRef(null)
   const [abierto, setAbierto] = useState(false)
@@ -46,6 +48,8 @@ function SelectorConBusqueda({ value, seleccion, opciones, etiqueta, placeholder
       {abierto && <span className="absolute z-50 mt-1 block max-h-64 w-full overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
         {!required && <button className="block w-full rounded px-3 py-2 text-left text-sm text-slate-600 hover:bg-emerald-50" onClick={() => elegir(null)} type="button">{placeholder}</button>}
         <span id={`${id}-lista`} role="listbox">{opciones.map((item, index) => <button aria-selected={item.id === value} className={`block w-full rounded px-3 py-2 text-left text-sm text-slate-700 hover:bg-emerald-50 ${indice === index ? 'bg-emerald-50' : ''}`} id={`${id}-opcion-${index}`} key={item.id} onClick={() => elegir(item)} onMouseEnter={() => setIndice(index)} role="option" type="button">{etiqueta(item)}</button>)}</span>
+        {cargando && opciones.length === 0 && <span className="block px-3 py-2 text-sm text-slate-500" role="status">Cargando...</span>}
+        {cargando === false && opciones.length === 0 && !error && <span className="block px-3 py-2 text-sm text-slate-500">{busqueda ? `No hay resultados para "${busqueda}".` : mensajeVacio || 'No hay opciones disponibles.'}</span>}
         {hayMas && <button className="block w-full px-3 py-2 text-left text-xs font-semibold text-emerald-700" onClick={onCargarMas} type="button">Cargar 20 más</button>}
         {error && <span className="block px-3 py-2 text-xs text-red-700" role="alert">{error}</span>}
       </span>}
