@@ -20,6 +20,9 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
   const [hayMas, setHayMas] = useState(false)
   const [error, setError] = useState('')
   const [actual, setActual] = useState(seleccion || null)
+  // Para mostrar "Cargando..." hasta que llega la respuesta de la consulta actual
+  const claveConsulta = JSON.stringify([url, page, search, empresaId, activo, rol])
+  const [claveCargada, setClaveCargada] = useState(null)
   const callback = useRef(onSeleccionado)
   useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
   useEffect(() => {
@@ -27,9 +30,9 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     let vigente = true
     const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(rol ? { rol } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
       if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
-    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
+    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }).finally(() => { if (vigente) setClaveCargada(claveConsulta) }), search ? 250 : 0)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [url, page, search, empresaId, activo, rol, disabled])
+  }, [url, page, search, empresaId, activo, rol, disabled, claveConsulta])
   useEffect(() => {
     if (!value) return undefined
     const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
@@ -39,7 +42,7 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     return () => { vigente = false }
   }, [url, value, opciones, seleccion, actual])
   const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
-  return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
+  return <SelectorConBusqueda busqueda={search} cargando={!disabled && claveCargada !== claveConsulta} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
 }
 
 function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId }) {
