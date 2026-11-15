@@ -7,6 +7,8 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import { formatearSuperficie } from '../../utils/lotes'
 import { buscarLugares, parseCoordenadas } from '../../utils/mapa'
 import BuscadorMapa from '../compartidos/mapas/BuscadorMapa'
+import { ESTILO_CABLE, iconoObstaculo } from '../../utils/obstaculos'
+import CapaObstaculos from './CapaObstaculos'
 
 // San Francisco, Cordoba
 const CENTRO_POR_DEFECTO = [-31.4278, -62.0828]
@@ -144,18 +146,63 @@ function ControlEdicion({ lote, onGeometriaChange }) {
   return null
 }
 
+/**
+ * Herramienta activa para marcar obstáculos: con una estructura cada clic en el mapa
+ * deja un marcador (la herramienta sigue activa para marcar varios seguidos); con el
+ * cable se marcan los puntos de la línea y se termina haciendo clic en el último.
+ */
+function ControlObstaculo({ herramienta, onObstaculoDibujado }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!herramienta) {
+      return undefined
+    }
+
+    const esCable = herramienta === 'CABLE'
+    const activar = () => {
+      if (esCable) {
+        map.pm.enableDraw('Line', { hintlineStyle: { ...ESTILO_CABLE, weight: 2 }, templineStyle: ESTILO_CABLE, pathOptions: ESTILO_CABLE })
+      } else {
+        map.pm.enableDraw('Marker', { markerStyle: { icon: iconoObstaculo(herramienta) }, continueDrawing: true })
+      }
+    }
+
+    const handleCreate = (event) => {
+      const geometria = event.layer.toGeoJSON().geometry
+      map.removeLayer(event.layer)
+      onObstaculoDibujado(herramienta, geometria)
+      // Geoman termina el modo línea al cerrar un cable: se reactiva para marcar otro
+      if (esCable) activar()
+    }
+
+    map.on('pm:create', handleCreate)
+    activar()
+
+    return () => {
+      map.off('pm:create', handleCreate)
+      map.pm.disableDraw()
+    }
+  }, [herramienta, map, onObstaculoDibujado])
+
+  return null
+}
+
 function MapaLotes({
+  herramientaObstaculo = null,
   isDibujando,
   loteEnEdicion,
   lotes,
+  obstaculos = [],
   onGeometriaEditada,
+  onObstaculoDibujado,
   onPoligonoDibujado,
   onSelectLote,
   selectedLoteId,
   ubicacionCampo,
   vistaVersion,
 }) {
-  const isInteractivo = !isDibujando && !loteEnEdicion
+  const isInteractivo = !isDibujando && !loteEnEdicion && !herramientaObstaculo
 
   return (
     <MapContainer
@@ -203,6 +250,8 @@ function MapaLotes({
           </Polygon>
         ))}
 
+      <CapaObstaculos obstaculos={obstaculos} />
+
       <BuscadorMapa />
       <AjustarVista
         lotes={lotes}
@@ -212,6 +261,7 @@ function MapaLotes({
       />
       <ControlDibujo activo={isDibujando} onPoligonoDibujado={onPoligonoDibujado} />
       <ControlEdicion lote={loteEnEdicion} onGeometriaChange={onGeometriaEditada} />
+      <ControlObstaculo herramienta={herramientaObstaculo} onObstaculoDibujado={onObstaculoDibujado} />
     </MapContainer>
   )
 }

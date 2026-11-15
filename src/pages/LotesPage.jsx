@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Archive, ArchiveRestore, ArrowLeft, Check, MapPin, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Archive, ArchiveRestore, ArrowLeft, Check, MapPin, PenTool, Pencil, Plus, Trash2, X } from 'lucide-react'
 import AppLayout from '../components/compartidos/layout/AppLayout'
 import DeleteDialog from '../components/compartidos/dialogos/DeleteDialog'
 import BaseDialog from '../components/compartidos/dialogos/BaseDialog'
@@ -9,6 +9,9 @@ import PageLoader from '../components/compartidos/feedback/PageLoader'
 import LoteForm from '../components/lotes/LoteForm'
 import MapaLotes from '../components/lotes/MapaLotes'
 import OrdenesDelLote from '../components/lotes/OrdenesDelLote'
+import { BarraHerramientasObstaculos, ListaObstaculos } from '../components/lotes/PanelObstaculos'
+import { createObstaculo, deleteObstaculo, getObstaculosDeLote, updateObstaculo } from '../api/obstaculosApi'
+import { TIPOS_OBSTACULO } from '../utils/obstaculos'
 import OrdenForm from '../components/ordenes/OrdenForm'
 import { getCampoById } from '../api/camposApi'
 import { cambiarEstadoLote, createLote, deleteLote, getLotes, updateLote } from '../api/lotesApi'
@@ -23,6 +26,7 @@ const MODOS = {
   VER: 'ver',
   DIBUJAR: 'dibujar',
   EDITAR_FORMA: 'editar-forma',
+  OBSTACULOS: 'obstaculos',
 }
 
 const loteActionClassName =
@@ -68,6 +72,10 @@ function LotesPage() {
   const [loteOrden, setLoteOrden] = useState(null)
   const [isSavingOrden, setIsSavingOrden] = useState(false)
   const [versionOrdenes, setVersionOrdenes] = useState(0)
+  // Obstáculos del lote seleccionado (se ven en el mapa y se editan en modo OBSTACULOS)
+  const [obstaculosCargados, setObstaculosCargados] = useState({ loteId: null, lista: [] })
+  const [herramientaObstaculo, setHerramientaObstaculo] = useState(null)
+  const obstaculos = obstaculosCargados.loteId === selectedLoteId ? obstaculosCargados.lista : []
   const [modo, setModo] = useState(MODOS.VER)
   const [vistaVersion, setVistaVersion] = useState(0)
   const [geometriaPendiente, setGeometriaPendiente] = useState(null)
@@ -132,7 +140,17 @@ function LotesPage() {
     }
   }, [campoId, navigate, notificarError, showToast])
 
+  useEffect(() => {
+    if (!selectedLoteId) return undefined
+    let vigente = true
+    getObstaculosDeLote(selectedLoteId)
+      .then((lista) => { if (vigente) setObstaculosCargados({ loteId: selectedLoteId, lista }) })
+      .catch(() => {})
+    return () => { vigente = false }
+  }, [selectedLoteId])
+
   const cancelarModo = useCallback(() => {
+    setHerramientaObstaculo(null)
     setModo(MODOS.VER)
     setLoteForma(null)
     setGeometriaEditada(null)
@@ -184,6 +202,40 @@ function LotesPage() {
     setLoteForma(lote)
     setGeometriaEditada(null)
     setModo(MODOS.EDITAR_FORMA)
+  }
+
+  const iniciarObstaculos = (lote) => {
+    setSelectedLoteId(lote.id)
+    setHerramientaObstaculo(null)
+    setModo(MODOS.OBSTACULOS)
+  }
+
+  const handleObstaculoDibujado = useCallback(async (tipo, geometria) => {
+    try {
+      const obstaculo = await createObstaculo(selectedLoteId, { tipo, geometria })
+      setObstaculosCargados((actual) => (actual.loteId === selectedLoteId ? { ...actual, lista: [...actual.lista, obstaculo] } : actual))
+      showToast({ message: `${TIPOS_OBSTACULO[tipo].nombre} marcado.`, type: 'success' })
+    } catch (requestError) {
+      notificarError(requestError, 'No se pudo guardar el obstáculo.')
+    }
+  }, [notificarError, selectedLoteId, showToast])
+
+  const handleActualizarObstaculo = async (id, cambios) => {
+    try {
+      const actualizado = await updateObstaculo(id, cambios)
+      setObstaculosCargados((actual) => ({ ...actual, lista: actual.lista.map((o) => (o.id === id ? actualizado : o)) }))
+    } catch (requestError) {
+      notificarError(requestError, 'No se pudo actualizar el obstáculo.')
+    }
+  }
+
+  const handleEliminarObstaculo = async (id) => {
+    try {
+      await deleteObstaculo(id)
+      setObstaculosCargados((actual) => ({ ...actual, lista: actual.lista.filter((o) => o.id !== id) }))
+    } catch (requestError) {
+      notificarError(requestError, 'No se pudo eliminar el obstáculo.')
+    }
   }
 
   const closeFormDialog = () => {
@@ -342,7 +394,16 @@ function LotesPage() {
         title={`Lotes de ${campo.nombre}`}
       />
 
-      {!isModoVer && (
+      {modo === MODOS.OBSTACULOS && (
+        <BarraHerramientasObstaculos
+          herramienta={herramientaObstaculo}
+          nombreLote={lotesVisibles.find((lote) => lote.id === selectedLoteId)?.nombre || 'el lote'}
+          onElegir={setHerramientaObstaculo}
+          onTerminar={cancelarModo}
+        />
+      )}
+
+      {!isModoVer && modo !== MODOS.OBSTACULOS && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p>
             {modo === MODOS.DIBUJAR
@@ -385,10 +446,13 @@ function LotesPage() {
         )}
         <section className="relative z-0 h-[28rem] overflow-hidden rounded-lg border border-emerald-100 shadow-sm shadow-emerald-950/5 lg:h-[calc(100vh-17rem)] lg:min-h-[30rem]">
           <MapaLotes
+            herramientaObstaculo={modo === MODOS.OBSTACULOS ? herramientaObstaculo : null}
             isDibujando={modo === MODOS.DIBUJAR}
             loteEnEdicion={modo === MODOS.EDITAR_FORMA ? loteForma : null}
             lotes={lotesVisibles}
+            obstaculos={obstaculos}
             onGeometriaEditada={handleGeometriaEditada}
+            onObstaculoDibujado={handleObstaculoDibujado}
             onPoligonoDibujado={handlePoligonoDibujado}
             onSelectLote={setSelectedLoteId}
             selectedLoteId={selectedLoteId}
@@ -468,6 +532,15 @@ function LotesPage() {
                         <PenTool aria-hidden="true" size={15} />
                         Forma
                       </button>
+                      <button
+                        aria-label={`Marcar obstáculos de ${lote.nombre}`}
+                        className={`${loteActionClassName} bg-emerald-50 text-emerald-800 hover:bg-emerald-100`}
+                        onClick={() => iniciarObstaculos(lote)}
+                        type="button"
+                      >
+                        <AlertTriangle aria-hidden="true" size={15} />
+                        Obstáculos{obstaculos.length > 0 ? ` (${obstaculos.length})` : ''}
+                      </button>
                       {lote.activo ? (
                         <button
                           aria-label={`Dar de baja ${lote.nombre}`}
@@ -499,6 +572,14 @@ function LotesPage() {
                         <Trash2 aria-hidden="true" size={15} />
                         Eliminar
                       </button>
+                    </div>
+                  )}
+
+                  {isSelected && modo === MODOS.OBSTACULOS && (
+                    <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-3">
+                      <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">Obstáculos marcados ({obstaculos.length})</h3>
+                      <ListaObstaculos editable obstaculos={obstaculos} onActualizar={handleActualizarObstaculo} onEliminar={handleEliminarObstaculo} />
+                      {obstaculos.length > 0 && <p className="mt-1.5 text-xs text-slate-500">Nombre y altura son opcionales; se guardan al salir del campo.</p>}
                     </div>
                   )}
 
