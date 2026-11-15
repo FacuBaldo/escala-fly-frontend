@@ -68,15 +68,15 @@ const restablecerCargasDeOrden = async (id) => {
 }
 
 export {
-  actualizarCargasDeOrden,
   asignarClienteOrden,
   cambiarEstadoOrden,
   createOrden,
   deleteOrden,
-  getCargasDeOrden,
   getOrdenes,
   getPlanDeOrden,
   regenerarPlan,
-  restablecerCargasDeOrden,
   updateOrden,
 }
+
+// Orden del cargador (export aparte para no mezclarlo con el resto de la API de ordenes)
+export { actualizarCargasDeOrden, getCargasDeOrden, restablecerCargasDeOrden }
