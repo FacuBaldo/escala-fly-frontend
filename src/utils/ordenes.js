@@ -36,7 +36,8 @@ const PATRONES_VUELO = {
 const nombrePatron = (patron) => PATRONES_VUELO[patron]?.nombre || patron
 
 // Radio de giro que se propone si la aeronave no tiene uno cargado
-const RADIO_GIRO_POR_DEFECTO = 200
+// Valor habitual segun el interesado (300-350 m). Se usa al dar de alta una aeronave.
+const RADIO_GIRO_POR_DEFECTO = 300
 
 // Un color por viaje, para distinguirlos cuando se ven todos juntos en el mapa
 const COLORES_VIAJE = ['#2563eb', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5', '#db2777']

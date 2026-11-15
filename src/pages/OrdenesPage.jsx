@@ -359,7 +359,9 @@ function OrdenesPage() {
                 <span>
                   {plan.motivoDesactualizado === 'MODELO_ANTERIOR'
                     ? 'Esta ruta se calculo antes de que se tuviera en cuenta el radio de giro del avion, asi que sus distancias quedan cortas. Usa'
-                    : 'El lote o sus pistas se modificaron despues de generar esta ruta. Usa'}
+                    : plan.motivoDesactualizado === 'RADIO_AERONAVE'
+                      ? `El radio de giro de la aeronave cambio despues de generar esta ruta (se calculo con ${plan.radioGiroMetros} m). Usa`
+                      : 'El lote o sus pistas se modificaron despues de generar esta ruta. Usa'}
                   <span className="font-bold"> Regenerar ruta </span>
                   para actualizarla.
                 </span>
