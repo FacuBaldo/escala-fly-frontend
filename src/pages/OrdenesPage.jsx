@@ -10,6 +10,7 @@ import PageLoader from '../components/compartidos/feedback/PageLoader'
 import OrdenForm from '../components/ordenes/OrdenForm'
 import MapaPlanVuelo from '../components/ordenes/MapaPlanVuelo'
 import PanelPlan from '../components/ordenes/PanelPlan'
+import RepartoCargas from '../components/ordenes/RepartoCargas'
 import BarraFiltros from '../components/compartidos/filtros/BarraFiltros'
 import BuscadorFiltro from '../components/compartidos/filtros/BuscadorFiltro'
 import SinResultados from '../components/compartidos/feedback/SinResultados'
@@ -386,6 +387,15 @@ function OrdenesPage() {
                 />
               </aside>
             </div>
+
+            <section className="mt-4 rounded-lg border border-emerald-100 bg-white p-4 shadow-sm shadow-emerald-950/5">
+              <RepartoCargas
+                editable={!['FINALIZADA', 'CANCELADA'].includes(ordenDetalle.estado)}
+                onNotificar={showToast}
+                ordenId={ordenDetalle.id}
+                versionPlan={plan.version}
+              />
+            </section>
           </>
         )}
       </AppLayout>

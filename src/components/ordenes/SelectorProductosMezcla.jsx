@@ -122,7 +122,7 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
     onChange(filas.map((fila, i) => (i === indice ? { ...fila, [campo]: valor } : fila)))
   }
 
-  const agregarFila = () => onChange([...filas, { productoId: '', dosisPorHectarea: '' }])
+  const agregarFila = () => onChange([...filas, { productoId: '', dosisPorHectarea: '', cantidadTotalCliente: '' }])
 
   const quitarFila = (indice) => {
     setCreando(null)
@@ -163,15 +163,29 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
         </p>
       )}
 
+      {filas.length > 0 && (
+        <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem] gap-2 text-xs font-semibold text-slate-500">
+          <span>Producto</span>
+          <span>Dosis por ha</span>
+          <span>Trajo el cliente</span>
+          <span />
+        </div>
+      )}
+
       {filas.map((fila, indice) => {
         const producto = productoPorId(fila.productoId)
         const dosis = Number(fila.dosisPorHectarea)
         const totalProducto = Number.isFinite(dosis) && superficieHa ? dosis * superficieHa : null
         // La dosis se carga en la unidad del producto, por hectarea
-        const unidadDosis = producto?.unidadMedida?.abreviatura ? `${producto.unidadMedida.abreviatura}/ha` : '/ha'
+        const unidad = producto?.unidadMedida?.abreviatura || ''
+        const unidadDosis = unidad ? `${unidad}/ha` : '/ha'
+        const totalCliente = fila.cantidadTotalCliente === '' || fila.cantidadTotalCliente === undefined ? null : Number(fila.cantidadTotalCliente)
+        // Lo que trajo el cliente contra lo que pide la dosis en todo el lote
+        const diferencia = totalProducto > 0 && totalCliente !== null && Number.isFinite(totalCliente) ? totalCliente - totalProducto : null
+        const formatear = (valor) => valor.toLocaleString('es-AR', { maximumFractionDigits: 2 })
 
         return (
-          <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_2.25rem] items-center gap-2" key={indice}>
+          <div className="grid grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem] items-center gap-2" key={indice}>
             <SelectorProducto empresaId={empresaId} mensajeVacio="Esta empresa no tiene productos cargados." onCrear={(nombre) => setCreando({ indice, nombre })} version={versionProductos} onChange={(event) => actualizarFila(indice, 'productoId', event.target.value)} onSeleccionado={(item) => { if (item) setProductos((actuales) => actuales[item.id] === item ? actuales : { ...actuales, [item.id]: item }) }} primeraPagina={primeraPagina} value={fila.productoId} />
 
             <span className="relative block">
@@ -187,6 +201,23 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                 {unidadDosis}
+              </span>
+            </span>
+
+            <span className="relative block">
+              <input
+                aria-label={`Cantidad que trajo el cliente del producto ${indice + 1}`}
+                className={`campo-con-unidad w-full pr-10 ${inputClassName}`}
+                min={0}
+                onChange={(event) => actualizarFila(indice, 'cantidadTotalCliente', event.target.value)}
+                placeholder="Trajo"
+                step="any"
+                title="Cantidad total que trajo el cliente"
+                type="number"
+                value={fila.cantidadTotalCliente ?? ''}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                {unidad}
               </span>
             </span>
 
@@ -209,10 +240,17 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
               />
             )}
 
-            {totalProducto > 0 && (
-              <p className="col-span-3 -mt-1 text-xs text-slate-500">
-                {producto?.nombre}: {totalProducto.toLocaleString('es-AR', { maximumFractionDigits: 2 })}{' '}
-                {producto?.unidadMedida?.abreviatura || ''} para todo el lote
+            {(totalProducto > 0 || (totalCliente > 0 && superficieHa > 0)) && (
+              <p className="col-span-full -mt-1 text-xs text-slate-500">
+                {totalProducto > 0
+                  ? <>{producto?.nombre}: {formatear(totalProducto)} {unidad} para todo el lote</>
+                  : <>{producto?.nombre}: sin dosis, se reparte lo que trajo el cliente ({formatear(totalCliente / superficieHa)} {unidadDosis})</>}
+                {diferencia !== null && Math.abs(diferencia) >= 0.005 && (
+                  <span className={diferencia < 0 ? 'font-semibold text-red-700' : 'font-semibold text-amber-700'}>
+                    {' · '}{diferencia < 0 ? `faltan ${formatear(-diferencia)} ${unidad}` : `sobran ${formatear(diferencia)} ${unidad}`} de lo que trajo el cliente
+                  </span>
+                )}
+                {diferencia !== null && Math.abs(diferencia) < 0.005 && <span className="font-semibold text-emerald-700"> · justo lo que trajo el cliente</span>}
               </p>
             )}
           </div>
