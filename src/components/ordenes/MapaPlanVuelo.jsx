@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
 import { LayersControl, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -6,6 +6,10 @@ import { geoJsonPoligonoALatLngs } from '../../utils/mapa'
 import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero } from '../../utils/ordenes'
 import { ESTILOS_TRAMO, obtenerTramosVuelo } from '../../utils/tramosVuelo'
 import IndicacionesVuelo from './IndicacionesVuelo'
+import CapaObstaculos from '../lotes/CapaObstaculos'
+import { IconoTipo } from '../lotes/PanelObstaculos'
+import { getObstaculosDeOrden } from '../../api/obstaculosApi'
+import { describirObstaculo } from '../../utils/obstaculos'
 
 const COLOR_LOTE = '#16a34a'
 const COLOR_PISTA_PRINCIPAL = '#1d4ed8'
@@ -120,6 +124,19 @@ function MapaPlanVuelo({ plan, viajeSeleccionado }) {
   const aplicaciones = viajeDetalle?.tramos.filter((tramo) => tramo.tipo === 'APLICACION') || []
   const inicio = aplicaciones[0]?.posiciones[0]
   const fin = aplicaciones.at(-1)?.posiciones.at(-1)
+  // Obstáculos del lote (molino, casa, galpón, silo, cables): referencias para el piloto
+  const [obstaculosCargados, setObstaculosCargados] = useState({ ordenId: null, lista: [] })
+  const ordenId = plan?.ordenId
+  useEffect(() => {
+    if (!ordenId) return undefined
+    let vigente = true
+    getObstaculosDeOrden(ordenId)
+      .then((lista) => { if (vigente) setObstaculosCargados({ ordenId, lista }) })
+      .catch(() => {})
+    return () => { vigente = false }
+  }, [ordenId])
+  const obstaculos = obstaculosCargados.ordenId === ordenId ? obstaculosCargados.lista : []
+
   if (!plan?.lote?.geometria) {
     return null
   }
@@ -209,9 +226,24 @@ function MapaPlanVuelo({ plan, viajeSeleccionado }) {
           </Marker>
         )}
 
+        <CapaObstaculos obstaculos={obstaculos} />
+
         <AjustarVista plan={plan} />
         <ControlesVista viajes={viajes} viajeDetalle={viajeDetalle} />
       </MapContainer>
+      {obstaculos.length > 0 && (
+        <div className="absolute bottom-7 right-2 z-[500] max-h-40 max-w-[16rem] overflow-y-auto rounded-md bg-white/95 px-3 py-2 text-xs shadow-md">
+          <p className="mb-1 font-bold text-slate-900">Obstáculos del lote</p>
+          <ul className="space-y-1">
+            {obstaculos.map((obstaculo) => (
+              <li className="flex items-center gap-2 text-slate-700" key={obstaculo.id}>
+                <IconoTipo tamano={11} tipo={obstaculo.tipo} />
+                {describirObstaculo(obstaculo)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <Leyenda vistaGeneral={!viajeDetalle} />
     </div>
   )
