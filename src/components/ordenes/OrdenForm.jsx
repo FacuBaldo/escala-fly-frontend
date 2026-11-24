@@ -20,6 +20,9 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
   const [hayMas, setHayMas] = useState(false)
   const [error, setError] = useState('')
   const [actual, setActual] = useState(seleccion || null)
+  // Para mostrar "Cargando..." hasta que llega la respuesta de la consulta actual
+  const claveConsulta = JSON.stringify([url, page, search, empresaId, activo, rol])
+  const [claveCargada, setClaveCargada] = useState(null)
   const callback = useRef(onSeleccionado)
   useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
   useEffect(() => {
@@ -27,9 +30,9 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     let vigente = true
     const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(rol ? { rol } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
       if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
-    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
+    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }).finally(() => { if (vigente) setClaveCargada(claveConsulta) }), search ? 250 : 0)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [url, page, search, empresaId, activo, rol, disabled])
+  }, [url, page, search, empresaId, activo, rol, disabled, claveConsulta])
   useEffect(() => {
     if (!value) return undefined
     const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
@@ -39,22 +42,22 @@ function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, em
     return () => { vigente = false }
   }, [url, value, opciones, seleccion, actual])
   const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
-  return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
+  return <SelectorConBusqueda busqueda={search} cargando={!disabled && claveCargada !== claveConsulta} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
 }
 
-function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId }) {
-  const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || '')
+// loteFijo: cuando la orden se crea desde la pantalla del campo, el lote (y su empresa) ya vienen elegidos
+function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaSesionId, loteFijo = null }) {
+  const [empresaId, setEmpresaId] = useState(() => editingOrden?.empresaId || loteFijo?.empresaId || '')
   const [loteElegido, setLoteElegido] = useState(null)
   const [aeronaveElegida, setAeronaveElegida] = useState(null)
   const [form, setForm] = useState(() => ({
-    loteId: editingOrden?.loteId || '',
+    loteId: editingOrden?.loteId || loteFijo?.id || '',
     aeronaveId: editingOrden?.aeronaveId || '',
     pilotoId: editingOrden?.pilotoId || '',
     clienteId: editingOrden?.clienteId || '',
     anchoAplicacionMetros: editingOrden?.anchoAplicacionMetros ?? '',
     litrosPorHectarea: editingOrden?.litrosPorHectarea ?? '',
     capacidadUtilLitros: editingOrden?.capacidadUtilLitros ?? '',
-    radioGiroMetros: editingOrden?.radioGiroMetros ?? '',
     patron: editingOrden?.patron || 'AUTOMATICO',
     fechaPrevista: soloFecha(editingOrden?.fechaPrevista),
     observaciones: editingOrden?.observaciones || '',
@@ -64,6 +67,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
     (editingOrden?.productos || []).map((item) => ({
       productoId: item.productoId,
       dosisPorHectarea: item.dosisPorHectarea ?? '',
+      cantidadTotalCliente: item.cantidadTotalCliente ?? '',
     })),
   )
 
@@ -83,7 +87,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       clienteId: '',
       anchoAplicacionMetros: '',
       capacidadUtilLitros: '',
-      radioGiroMetros: '',
     }))
     setFilasMezcla([])
     setLoteElegido(null)
@@ -102,9 +105,6 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       aeronaveId,
       anchoAplicacionMetros: aeronave?.anchoAplicacionMetros ?? currentForm.anchoAplicacionMetros,
       capacidadUtilLitros: aeronave?.capacidadUtilLitros ?? currentForm.capacidadUtilLitros,
-      // El radio es de cada avion: si el elegido no lo tiene se propone el habitual,
-      // no el del avion que estaba elegido antes
-      radioGiroMetros: aeronave?.radioGiroMetros ?? RADIO_GIRO_POR_DEFECTO,
     }))
   }
 
@@ -116,19 +116,20 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       anchoAplicacionMetros: Number(form.anchoAplicacionMetros),
       litrosPorHectarea: Number(form.litrosPorHectarea),
       capacidadUtilLitros: Number(form.capacidadUtilLitros),
-      radioGiroMetros: Number(form.radioGiroMetros),
       fechaPrevista: form.fechaPrevista || null,
       productos: filasMezcla
         .filter((fila) => fila.productoId)
         .map((fila) => ({
           productoId: fila.productoId,
           dosisPorHectarea: fila.dosisPorHectarea === '' ? null : Number(fila.dosisPorHectarea),
+          cantidadTotalCliente: fila.cantidadTotalCliente === '' || fila.cantidadTotalCliente === undefined ? null : Number(fila.cantidadTotalCliente),
         })),
     })
   }
 
   const faltanPistas = loteElegido && (!loteElegido.pistaPrincipalId || !loteElegido.pistaCargaId)
-  const puedeGuardar = empresaSeleccionada && Boolean(form.pilotoId) && Boolean(form.clienteId) && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
+  // El piloto es opcional: se puede asignar o cambiar despues de crear la orden
+  const puedeGuardar = empresaSeleccionada && Boolean(form.clienteId) && !faltanPistas && loteElegido?.id === form.loteId && aeronaveElegida?.id === form.aeronaveId
 
   const caldoTotal =
     loteElegido && Number(form.litrosPorHectarea) > 0
@@ -156,15 +157,17 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
         <SeccionFormulario descripcion="Selecciona la empresa para ver sus recursos." icono={Building2} titulo="Empresa">
           <label className={claseEtiqueta}>
             Empresa
-            <SelectorEmpresa disabled={Boolean(editingOrden)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required value={empresaId} />
+            <SelectorEmpresa disabled={Boolean(editingOrden || loteFijo)} onChange={handleEmpresaChange} placeholder="Selecciona una empresa" required value={empresaId} />
             {editingOrden && <span className={claseAyuda}>La empresa no se puede cambiar en una orden existente.</span>}
+            {!editingOrden && loteFijo && <span className={claseAyuda}>Es la empresa dueña del campo.</span>}
           </label>
         </SeccionFormulario>
       )}
-      <SeccionFormulario descripcion="El piloto podrá consultar y ejecutar esta orden." icono={Plane} titulo="Piloto asignado">
+      <SeccionFormulario descripcion="Opcional. El piloto podrá consultar y ejecutar esta orden." icono={Plane} titulo="Piloto asignado">
         <label className={claseEtiqueta}>
           Piloto
-          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(piloto) => `${piloto.nombre} ${piloto.apellido}`} key={`piloto-${empresaRecursos}`} name="pilotoId" onChange={handleChange} placeholder="Selecciona un piloto" required rol="PILOTO" seleccion={editingOrden?.piloto} url="/usuarios" value={form.pilotoId} />
+          <SelectorRemoto disabled={!empresaSeleccionada} empresaId={empresaRecursos} etiqueta={(piloto) => `${piloto.nombre} ${piloto.apellido}`} key={`piloto-${empresaRecursos}`} name="pilotoId" onChange={handleChange} placeholder="Sin piloto por ahora" rol="PILOTO" seleccion={editingOrden?.piloto} url="/usuarios" value={form.pilotoId} />
+          <span className={claseAyuda}>Se puede asignar o cambiar más adelante editando la orden.</span>
         </label>
       </SeccionFormulario>
       <SeccionFormulario descripcion="El cliente podrá consultar esta orden y su plan de vuelo." icono={UserRound} titulo="Cliente asignado">
@@ -181,12 +184,13 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={claseEtiqueta}>
             Lote
-            <SelectorRemoto disabled={!empresaSeleccionada || Boolean(editingOrden)} empresaId={empresaRecursos} etiqueta={(lote) => `${lote.campoNombre ? `${lote.campoNombre} · ` : ''}${lote.nombre} (${formatearSuperficie(lote.superficie)})`} key={`lote-${empresaRecursos}`} name="loteId" onChange={handleChange} onSeleccionado={setLoteElegido} placeholder="Selecciona un lote" required url="/lotes" value={form.loteId} />
+            <SelectorRemoto disabled={!empresaSeleccionada || Boolean(editingOrden || loteFijo)} empresaId={empresaRecursos} etiqueta={(lote) => `${lote.campoNombre ? `${lote.campoNombre} · ` : ''}${lote.nombre} (${formatearSuperficie(lote.superficie)})`} key={`lote-${empresaRecursos}`} name="loteId" onChange={handleChange} onSeleccionado={setLoteElegido} placeholder="Selecciona un lote" required seleccion={loteFijo} url="/lotes" value={form.loteId} />
             {editingOrden && (
               <span className={claseAyuda}>
                 El lote no se puede cambiar en una orden existente.
               </span>
             )}
+            {!editingOrden && loteFijo && <span className={claseAyuda}>La orden se crea para este lote.</span>}
           </label>
 
           <label className={claseEtiqueta}>
@@ -278,27 +282,25 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Cómo trabaja el avión sobre el lote. Los giros usan el radio configurado de la aeronave."
+        descripcion="Cómo trabaja el avión sobre el lote. Los giros usan el radio de giro fijo de la aeronave."
         icono={Route}
         titulo="Patron y giros"
       >
         <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
-          <CampoConUnidad
-            ayuda="Lo trae la aeronave. Entre 150 y 300 m es lo habitual."
-            etiqueta="Radio de giro"
-            max={1000}
-            min={30}
-            name="radioGiroMetros"
-            onChange={handleChange}
-            placeholder={String(RADIO_GIRO_POR_DEFECTO)}
-            required
-            unidad="m"
-            value={form.radioGiroMetros}
-          />
+          {/* El radio no se carga en la orden: es un dato fijo de la aeronave (se edita en Aeronaves) */}
+          <div className="grid content-start gap-1.5">
+            <span className="text-sm font-semibold text-slate-700">Radio de giro</span>
+            <span className="flex h-11 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+              {aeronaveElegida ? `${aeronaveElegida.radioGiroMetros ?? RADIO_GIRO_POR_DEFECTO} m` : '—'}
+            </span>
+            <span className={claseAyuda}>
+              {aeronaveElegida ? 'Es el de la aeronave. Se cambia en Aeronaves.' : 'Se toma de la aeronave elegida.'}
+            </span>
+          </div>
 
           <fieldset className="grid content-start gap-1.5">
             <legend className="mb-1.5 text-sm font-semibold text-slate-700">Patron de trabajo</legend>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {Object.entries(PATRONES_VUELO).map(([valor, { nombre, subtitulo, descripcion }]) => {
                 const elegido = form.patron === valor
 
@@ -335,7 +337,7 @@ function OrdenForm({ editingOrden, isAdmin, isSaving, onCancel, onSave, empresaS
       </SeccionFormulario>
 
       <SeccionFormulario
-        descripcion="Opcional: que agroquimicos lleva la mezcla y en que dosis."
+        descripcion="Opcional: que agroquimicos lleva la mezcla, en que dosis y cuanto trajo el cliente. Al generar la ruta se reparten entre las cargas."
         icono={Package}
         titulo="Productos"
       >

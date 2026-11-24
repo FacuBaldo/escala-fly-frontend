@@ -1,36 +1,108 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { claseCampo } from '../compartidos/formularios/estilosFormulario'
 import apiClient from '../../api/apiClient'
 import SelectorConBusqueda from '../compartidos/formularios/SelectorConBusqueda'
+import NuevoProductoRapido from './NuevoProductoRapido'
 
-function SelectorRemoto({ url, value, onChange, name, placeholder, seleccion, empresaId, activo, disabled = false, required = false, etiqueta = (item) => item.nombre, onSeleccionado }) {
-  const [opciones, setOpciones] = useState([])
+const LIMITE = 20
+
+// Se muestra la marca junto al nombre generico: en el campo usan los dos indistintamente
+const etiquetaProducto = (item) => (item.marca ? `${item.nombre} · ${item.marca}` : item.nombre)
+
+/**
+ * Primera pagina de productos de la empresa (sin busqueda). Se pide una sola vez al
+ * abrir el formulario y la comparten todas las filas: antes cada fila hacia su propio
+ * pedido recien al agregarla, y el desplegable se abria vacio mientras llegaba.
+ */
+function usePrimeraPaginaProductos(empresaId, disabled, version) {
+  // version cambia al crear un producto desde la orden, para volver a pedir la lista
+  const clave = disabled ? null : `${empresaId || 'propia'}|${version}`
+  const [resultado, setResultado] = useState({ clave: undefined, data: [], hasNextPage: false, error: '' })
+
+  useEffect(() => {
+    if (clave === null) return undefined
+    let vigente = true
+    apiClient.get('/productos', { params: { page: 1, limit: LIMITE, ...(empresaId ? { empresaId } : {}) } })
+      .then(({ data }) => { if (vigente) setResultado({ clave, data: data.data, hasNextPage: data.pagination.hasNextPage, error: '' }) })
+      .catch(() => { if (vigente) setResultado({ clave, data: [], hasNextPage: false, error: 'No se pudieron cargar los productos.' }) })
+    return () => { vigente = false }
+  }, [clave, empresaId])
+
+  return { ...resultado, cargando: resultado.clave !== clave }
+}
+
+/**
+ * Selector de un producto. Sin texto de busqueda muestra la primera pagina compartida;
+ * al escribir o pedir mas, consulta al servidor. Las paginas ya traidas quedan guardadas.
+ */
+function SelectorProducto({ primeraPagina, empresaId, value, onChange, onSeleccionado, mensajeVacio, version, onCrear }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [hayMas, setHayMas] = useState(false)
+  const [paginas, setPaginas] = useState({})
   const [error, setError] = useState('')
-  const [actual, setActual] = useState(seleccion || null)
+  const [actual, setActual] = useState(null)
   const callback = useRef(onSeleccionado)
   useEffect(() => { callback.current = onSeleccionado }, [onSeleccionado])
+
+  const clave = `${version}|${search}|${page}`
+  const pendiente = !(search === '' && page === 1) && !paginas[clave]
+
   useEffect(() => {
-    if (disabled) return undefined
+    if (!pendiente) return undefined
     let vigente = true
-    const timer = setTimeout(() => apiClient.get(url, { params: { page, limit: 20, search, ...(empresaId ? { empresaId } : {}), ...(activo !== undefined ? { activo } : {}) } }).then(({ data }) => {
-      if (vigente) { setOpciones((previas) => page === 1 ? data.data : [...previas, ...data.data.filter((item) => !previas.some((previo) => previo.id === item.id))]); setHayMas(data.pagination.hasNextPage); setError('') }
-    }).catch(() => { if (vigente) setError('No se pudieron cargar las opciones.') }), 250)
+    // Solo se espera mientras se escribe; "cargar mas" va directo
+    const timer = setTimeout(() => apiClient.get('/productos', { params: { page, limit: LIMITE, search, ...(empresaId ? { empresaId } : {}) } })
+      .then(({ data }) => { if (vigente) { setPaginas((previas) => ({ ...previas, [clave]: { data: data.data, hasNextPage: data.pagination.hasNextPage } })); setError('') } })
+      .catch(() => { if (vigente) setError('No se pudieron cargar los productos.') }), page === 1 ? 250 : 0)
     return () => { vigente = false; clearTimeout(timer) }
-  }, [url, page, search, empresaId, activo, disabled])
+  }, [pendiente, clave, page, search, empresaId])
+
+  const { cargando: primeraCargando, data: primeraData, hasNextPage: primeraHayMas } = primeraPagina
+  // Paginas 1..page de la busqueda actual (null = todavia no llego)
+  const listas = useMemo(() => Array.from({ length: page }, (_, i) => (
+    search === '' && i === 0
+      ? (primeraCargando ? null : { data: primeraData, hasNextPage: primeraHayMas })
+      : paginas[`${version}|${search}|${i + 1}`] || null
+  )), [page, search, version, paginas, primeraCargando, primeraData, primeraHayMas])
+  const opciones = useMemo(
+    () => listas.filter(Boolean).flatMap((lista) => lista.data).filter((item, i, todos) => todos.findIndex((otro) => otro.id === item.id) === i),
+    [listas],
+  )
+  const cargando = listas.some((lista) => lista === null) && !error
+  const hayMas = Boolean(listas[page - 1]?.hasNextPage)
+  const errorVisible = error || (search === '' ? primeraPagina.error : '')
+
   useEffect(() => {
     if (!value) return undefined
-    const encontrado = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
+    const encontrado = opciones.find((item) => item.id === value) || (actual?.id === value ? actual : null)
     if (encontrado) { callback.current?.(encontrado); return undefined }
     let vigente = true
-    apiClient.get(`${url}/${encodeURIComponent(value)}`).then(({ data }) => { if (vigente) { setActual(data); callback.current?.(data) } }).catch(() => {})
+    apiClient.get(`/productos/${encodeURIComponent(value)}`).then(({ data }) => { if (vigente) { setActual(data); callback.current?.(data) } }).catch(() => {})
     return () => { vigente = false }
-  }, [url, value, opciones, seleccion, actual])
-  const elegida = opciones.find((item) => item.id === value) || (seleccion?.id === value ? seleccion : null) || (actual?.id === value ? actual : null)
-  return <SelectorConBusqueda busqueda={search} disabled={disabled} error={error} etiqueta={etiqueta} hayMas={hayMas} onBuscar={(texto) => { if (texto !== search) { setOpciones([]); setHayMas(false) } setPage(1); setSearch(texto) }} onCargarMas={() => setPage((p) => p + 1)} onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { name, value: item?.id || '' } }, item) }} opciones={opciones} placeholder={placeholder} required={required} seleccion={elegida} value={value} />
+  }, [value, opciones, actual])
+
+  const elegida = opciones.find((item) => item.id === value) || (actual?.id === value ? actual : null)
+
+  return (
+    <SelectorConBusqueda
+      accionExtra={{ etiqueta: (texto) => (texto.trim() ? `+ Crear producto "${texto.trim()}"` : '+ Crear producto nuevo'), onClick: (texto) => onCrear(texto.trim()) }}
+      busqueda={search}
+      cargando={cargando}
+      error={errorVisible}
+      etiqueta={etiquetaProducto}
+      hayMas={hayMas}
+      mensajeVacio={mensajeVacio}
+      onBuscar={(texto) => { setError(''); setPage(1); setSearch(texto) }}
+      onCargarMas={() => setPage((p) => p + 1)}
+      onSeleccionar={(item) => { setActual(item); callback.current?.(item); onChange({ target: { value: item?.id || '' } }, item) }}
+      opciones={opciones}
+      placeholder="Selecciona un producto"
+      required
+      seleccion={elegida}
+      value={value}
+    />
+  )
 }
 
 const inputClassName = `h-10 text-sm ${claseCampo}`
@@ -41,13 +113,28 @@ const inputClassName = `h-10 text-sm ${claseCampo}`
  */
 function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange, superficieHa }) {
   const [productos, setProductos] = useState({})
+  const [versionProductos, setVersionProductos] = useState(0)
+  // Fila en la que se esta dando de alta un producto nuevo: { indice, nombre }
+  const [creando, setCreando] = useState(null)
+  const primeraPagina = usePrimeraPaginaProductos(empresaId, disabled, versionProductos)
+  const sinProductos = !primeraPagina.cargando && !primeraPagina.error && primeraPagina.data.length === 0
   const actualizarFila = (indice, campo, valor) => {
     onChange(filas.map((fila, i) => (i === indice ? { ...fila, [campo]: valor } : fila)))
   }
 
-  const agregarFila = () => onChange([...filas, { productoId: '', dosisPorHectarea: '' }])
+  const agregarFila = () => onChange([...filas, { productoId: '', dosisPorHectarea: '', cantidadTotalCliente: '' }])
 
-  const quitarFila = (indice) => onChange(filas.filter((_, i) => i !== indice))
+  const quitarFila = (indice) => {
+    setCreando(null)
+    onChange(filas.filter((_, i) => i !== indice))
+  }
+
+  const productoCreado = (indice, producto) => {
+    setProductos((actuales) => ({ ...actuales, [producto.id]: producto }))
+    actualizarFila(indice, 'productoId', producto.id)
+    setVersionProductos((version) => version + 1)
+    setCreando(null)
+  }
 
   const productoPorId = (id) => productos[id]
 
@@ -68,8 +155,21 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
 
       {filas.length === 0 && (
         <p className="rounded-md border border-dashed border-slate-200 px-3 py-3 text-xs text-slate-500">
-          {disabled ? 'Selecciona primero una empresa para agregar productos.' : 'Podes agregar agroquimicos con su dosis por hectarea.'}
+          {disabled
+            ? 'Selecciona primero una empresa para agregar productos.'
+            : sinProductos
+              ? 'Esta empresa todavia no tiene productos cargados. Usa "Agregar producto" y crealo desde la lista.'
+              : 'Podes agregar agroquimicos con su dosis por hectarea.'}
         </p>
+      )}
+
+      {filas.length > 0 && (
+        <div aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem] gap-2 text-xs font-semibold text-slate-500">
+          <span>Producto</span>
+          <span>Dosis por ha</span>
+          <span>Trajo el cliente</span>
+          <span />
+        </div>
       )}
 
       {filas.map((fila, indice) => {
@@ -77,11 +177,16 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
         const dosis = Number(fila.dosisPorHectarea)
         const totalProducto = Number.isFinite(dosis) && superficieHa ? dosis * superficieHa : null
         // La dosis se carga en la unidad del producto, por hectarea
-        const unidadDosis = producto?.unidadMedida?.abreviatura ? `${producto.unidadMedida.abreviatura}/ha` : '/ha'
+        const unidad = producto?.unidadMedida?.abreviatura || ''
+        const unidadDosis = unidad ? `${unidad}/ha` : '/ha'
+        const totalCliente = fila.cantidadTotalCliente === '' || fila.cantidadTotalCliente === undefined ? null : Number(fila.cantidadTotalCliente)
+        // Lo que trajo el cliente contra lo que pide la dosis en todo el lote
+        const diferencia = totalProducto > 0 && totalCliente !== null && Number.isFinite(totalCliente) ? totalCliente - totalProducto : null
+        const formatear = (valor) => valor.toLocaleString('es-AR', { maximumFractionDigits: 2 })
 
         return (
-          <div className="grid grid-cols-[minmax(0,1fr)_8.5rem_2.25rem] items-center gap-2" key={indice}>
-            <SelectorRemoto empresaId={empresaId} onChange={(event) => actualizarFila(indice, 'productoId', event.target.value)} onSeleccionado={(item) => { if (item) setProductos((actuales) => actuales[item.id] === item ? actuales : { ...actuales, [item.id]: item }) }} placeholder="Selecciona un producto" required url="/productos" value={fila.productoId} />
+          <div className="grid grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem] items-center gap-2" key={indice}>
+            <SelectorProducto empresaId={empresaId} mensajeVacio="Esta empresa no tiene productos cargados." onCrear={(nombre) => setCreando({ indice, nombre })} version={versionProductos} onChange={(event) => actualizarFila(indice, 'productoId', event.target.value)} onSeleccionado={(item) => { if (item) setProductos((actuales) => actuales[item.id] === item ? actuales : { ...actuales, [item.id]: item }) }} primeraPagina={primeraPagina} value={fila.productoId} />
 
             <span className="relative block">
               <input
@@ -99,6 +204,23 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
               </span>
             </span>
 
+            <span className="relative block">
+              <input
+                aria-label={`Cantidad que trajo el cliente del producto ${indice + 1}`}
+                className={`campo-con-unidad w-full pr-10 ${inputClassName}`}
+                min={0}
+                onChange={(event) => actualizarFila(indice, 'cantidadTotalCliente', event.target.value)}
+                placeholder="Trajo"
+                step="any"
+                title="Cantidad total que trajo el cliente"
+                type="number"
+                value={fila.cantidadTotalCliente ?? ''}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                {unidad}
+              </span>
+            </span>
+
             <button
               aria-label={`Quitar producto ${indice + 1}`}
               className="flex h-9 w-9 items-center justify-center rounded-md bg-red-50 text-red-700 transition hover:bg-red-100"
@@ -109,10 +231,26 @@ function SelectorProductosMezcla({ disabled = false, empresaId, filas, onChange,
               <Trash2 aria-hidden="true" size={16} />
             </button>
 
-            {totalProducto > 0 && (
-              <p className="col-span-3 -mt-1 text-xs text-slate-500">
-                {producto?.nombre}: {totalProducto.toLocaleString('es-AR', { maximumFractionDigits: 2 })}{' '}
-                {producto?.unidadMedida?.abreviatura || ''} para todo el lote
+            {creando?.indice === indice && (
+              <NuevoProductoRapido
+                empresaId={empresaId}
+                nombreInicial={creando.nombre}
+                onCancelar={() => setCreando(null)}
+                onCreado={(producto) => productoCreado(indice, producto)}
+              />
+            )}
+
+            {(totalProducto > 0 || (totalCliente > 0 && superficieHa > 0)) && (
+              <p className="col-span-full -mt-1 text-xs text-slate-500">
+                {totalProducto > 0
+                  ? <>{producto?.nombre}: {formatear(totalProducto)} {unidad} para todo el lote</>
+                  : <>{producto?.nombre}: sin dosis, se reparte lo que trajo el cliente ({formatear(totalCliente / superficieHa)} {unidadDosis})</>}
+                {diferencia !== null && Math.abs(diferencia) >= 0.005 && (
+                  <span className={diferencia < 0 ? 'font-semibold text-red-700' : 'font-semibold text-amber-700'}>
+                    {' · '}{diferencia < 0 ? `faltan ${formatear(-diferencia)} ${unidad}` : `sobran ${formatear(diferencia)} ${unidad}`} de lo que trajo el cliente
+                  </span>
+                )}
+                {diferencia !== null && Math.abs(diferencia) < 0.005 && <span className="font-semibold text-emerald-700"> · justo lo que trajo el cliente</span>}
               </p>
             )}
           </div>

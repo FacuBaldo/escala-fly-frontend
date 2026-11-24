@@ -1,5 +1,5 @@
 import { Compass, Droplets, Layers, Navigation, Route, Sparkles } from 'lucide-react'
-import { colorDeViaje, formatearDistancia, formatearLitros, formatearNumero, nombrePatron, PATRONES_VUELO } from '../../utils/ordenes'
+import { colorDeViaje, FORMAS_LOTE, formatearDistancia, formatearLitros, formatearNumero, nombrePatron, PATRONES_VUELO } from '../../utils/ordenes'
 import EsquemaPatron from './EsquemaPatron'
 
 // El motor mide desde el este; la orientación geográfica se expresa desde el norte.
@@ -33,14 +33,14 @@ const Tarjeta = ({ icono: Icono, titulo, valor, detalle }) => (
 )
 
 /**
- * En automatico el planificador calcula los dos patrones: devuelve cuanto menos
- * vuela el elegido que el otro, o null si no hubo comparacion.
+ * Planes anteriores al Sprint 4 (sin recomendación): cuánto menos vuela el patrón
+ * elegido en automático que el otro, o null si no hubo comparación.
  */
 const ahorroDelPatron = (plan) => {
   const comparacion = plan.comparacionPatrones || {}
   const otros = Object.entries(comparacion).filter(([patron]) => patron !== plan.patron)
 
-  if (plan.patronSolicitado !== 'AUTOMATICO' || otros.length === 0) {
+  if (plan.recomendacion || plan.patronSolicitado !== 'AUTOMATICO' || otros.length === 0) {
     return null
   }
 
@@ -49,17 +49,56 @@ const ahorroDelPatron = (plan) => {
 }
 
 /**
+ * Recomendación según la forma del lote, para el piloto: qué patrón conviene y por
+ * qué, y cuánto vuela cada uno. El piloto igual puede trabajar de otra manera.
+ */
+const Recomendacion = ({ plan }) => {
+  const { recomendacion } = plan
+  if (!recomendacion) return null
+  const sigueRecomendacion = recomendacion.patron === plan.patron
+  const comparacion = Object.entries(plan.comparacionPatrones || {}).sort((a, b) => a[1] - b[1])
+
+  return (
+    <div className="grid gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-950">
+      <p className="flex items-start gap-2">
+        <Sparkles aria-hidden="true" className="mt-0.5 shrink-0" size={14} />
+        <span>
+          <span className="font-bold">Recomendado para este lote: {nombrePatron(recomendacion.patron)}</span>
+          {' '}(forma: {FORMAS_LOTE[recomendacion.forma]?.toLowerCase() || recomendacion.forma}). {recomendacion.motivo}
+        </span>
+      </p>
+      {!sigueRecomendacion && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">
+          La ruta se calculó con <span className="font-bold">{nombrePatron(plan.patron)}</span>, elegido en la orden.
+        </p>
+      )}
+      {comparacion.length > 1 && (
+        <dl className="grid gap-0.5">
+          {comparacion.map(([patron, metros]) => (
+            <div className="flex justify-between gap-2" key={patron}>
+              <dt className={patron === plan.patron ? 'font-bold' : ''}>{nombrePatron(patron)}</dt>
+              <dd className={patron === plan.patron ? 'font-bold' : ''}>{formatearDistancia(metros)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  )
+}
+
+/**
  * Resumen del plan, selector de viajes y ficha del viaje elegido.
  */
 function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
   const viaje = plan.viajes.find((item) => item.numero === viajeSeleccionado)
   const ahorro = ahorroDelPatron(plan)
+  const esEspiral = plan.patron === 'ESPIRAL'
 
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-2">
         <Tarjeta
-          detalle={`${plan.cantidadPasadas} pasadas`}
+          detalle={`${plan.cantidadPasadas} ${esEspiral ? 'vueltas' : 'pasadas'}`}
           icono={Layers}
           titulo="Superficie"
           valor={`${formatearNumero(plan.superficieHa)} ha`}
@@ -73,12 +112,21 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
           titulo="Distancia"
           valor={formatearDistancia(plan.distanciaTotalMetros)}
         />
-        <Tarjeta
-          detalle={`Desde el norte · ${plan.radioGiroMetros ? `radio de giro ${formatearNumero(plan.radioGiroMetros, 0)} m` : nombrePatron(plan.patron)}`}
-          icono={Compass}
-          titulo="Eje de pasadas"
-          valor={`${formatearNumero(orientacionGeografica(plan.orientacionGrados), 0)}° / ${formatearNumero(orientacionGeografica(plan.orientacionGrados) + 180, 0)}°`}
-        />
+        {esEspiral ? (
+          <Tarjeta
+            detalle={plan.radioGiroMetros ? `Radio de giro ${formatearNumero(plan.radioGiroMetros, 0)} m` : undefined}
+            icono={Compass}
+            titulo="Recorrido"
+            valor="Del borde al centro"
+          />
+        ) : (
+          <Tarjeta
+            detalle={`Desde el norte · ${plan.radioGiroMetros ? `radio de giro ${formatearNumero(plan.radioGiroMetros, 0)} m` : nombrePatron(plan.patron)}`}
+            icono={Compass}
+            titulo="Eje de pasadas"
+            valor={`${formatearNumero(orientacionGeografica(plan.orientacionGrados), 0)}° / ${formatearNumero(orientacionGeografica(plan.orientacionGrados) + 180, 0)}°`}
+          />
+        )}
       </div>
 
       <DesgloseDistancias viajes={plan.viajes} />
@@ -89,6 +137,8 @@ function PanelPlan({ plan, viajeSeleccionado, onSeleccionarViaje }) {
         <p className="text-xs leading-5 text-slate-600">{PATRONES_VUELO[plan.patron]?.descripcion}</p>
         <p className="mt-1 text-xs text-slate-500">Esquema orientativo. Números = orden de vuelo; flechas = sentido.</p>
       </div>
+
+      <Recomendacion plan={plan} />
 
       {ahorro && ahorro.metros > 0 && (
         <p className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">

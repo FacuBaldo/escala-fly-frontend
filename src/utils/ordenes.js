@@ -17,9 +17,9 @@ const ESTILOS_ESTADO = {
 // Patrones de trabajo sobre el lote (relevamiento, modulo 6)
 const PATRONES_VUELO = {
   AUTOMATICO: {
-    nombre: 'Automatico',
-    subtitulo: 'Menor distancia calculada',
-    descripcion: 'Compara ambos patrones y elige el recorrido de menor distancia total.',
+    nombre: 'Recomendado',
+    subtitulo: 'Según la forma del lote',
+    descripcion: 'Analiza la forma del lote (cuadrado, alargado, triángulo, redondeado o irregular) y elige el patrón que le corresponde; entre los posibles, el de menor recorrido.',
   },
   IDA_Y_VUELTA: {
     nombre: 'Ida y vuelta',
@@ -31,12 +31,28 @@ const PATRONES_VUELO = {
     subtitulo: 'Pasadas salteadas',
     descripcion: 'Alterna entre franjas separadas para favorecer giros abiertos. Completa las intermedias después; no es una espiral.',
   },
+  ESPIRAL: {
+    nombre: 'Espiral',
+    subtitulo: 'Del borde hacia el centro',
+    descripcion: 'Recorre el contorno y va cerrando vueltas hacia adentro. Ideal en lotes redondeados; en esquinas marcadas hace un rulo. Solo en lotes sin entrantes ni huecos.',
+  },
+}
+
+// Formas de lote que reconoce el planificador para recomendar el patrón
+const FORMAS_LOTE = {
+  IRREGULAR: 'Irregular (con entrantes o huecos)',
+  REDONDEADA: 'Redondeado',
+  TRIANGULAR: 'Triangular',
+  CUADRADA: 'Cuadrado',
+  RECTANGULAR: 'Alargado',
+  POLIGONAL: 'Poligonal',
 }
 
 const nombrePatron = (patron) => PATRONES_VUELO[patron]?.nombre || patron
 
 // Radio de giro que se propone si la aeronave no tiene uno cargado
-const RADIO_GIRO_POR_DEFECTO = 200
+// Valor habitual segun el interesado (300-350 m). Se usa al dar de alta una aeronave.
+const RADIO_GIRO_POR_DEFECTO = 300
 
 // Un color por viaje, para distinguirlos cuando se ven todos juntos en el mapa
 const COLORES_VIAJE = ['#2563eb', '#ea580c', '#9333ea', '#0d9488', '#dc2626', '#ca8a04', '#4f46e5', '#db2777']
@@ -67,6 +83,7 @@ const formatearFecha = (fecha) => {
 
 export {
   ESTADOS_ORDEN,
+  FORMAS_LOTE,
   PATRONES_VUELO,
   RADIO_GIRO_POR_DEFECTO,
   ESTILOS_ESTADO,
