@@ -83,7 +83,7 @@ function CargadorPage() {
                     <td className="py-1 pr-2 text-right">{producto.dosisPorHectarea ? `${formatearNumero(producto.dosisPorHectarea, 3)} ${producto.unidad}/ha` : '—'}</td>
                     <td className="py-1 pr-2 text-right">{formatearNumero(producto.asignado)} {producto.unidad}</td>
                     <td className="py-1 text-right">
-                      {producto.cantidadTotalCliente ? `${formatearNumero(producto.cantidadTotalCliente)} ${producto.unidad}` : '—'}
+                      {producto.cantidadTotalCliente != null ? `${formatearNumero(producto.cantidadTotalCliente)} ${producto.unidad}` : '—'}
                       {producto.diferenciaCliente !== null && Math.abs(producto.diferenciaCliente) >= 0.005 && (
                         <span className="block text-xs font-semibold">
                           {producto.diferenciaCliente > 0 ? `Sobran ${formatearNumero(producto.diferenciaCliente)} ${producto.unidad}` : `Faltan ${formatearNumero(-producto.diferenciaCliente)} ${producto.unidad}`}

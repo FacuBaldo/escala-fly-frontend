@@ -229,10 +229,10 @@ function RepartoCargas({ ordenId, versionPlan, editable, onNotificar }) {
                 <td className="px-3 py-1.5 text-slate-600" colSpan={4}>Trajo el cliente</td>
                 {productos.map((producto) => {
                   const asignado = editando ? asignadoEnEdicion(producto.productoId) : producto.asignado
-                  const diferencia = producto.cantidadTotalCliente ? producto.cantidadTotalCliente - asignado : null
+                    const diferencia = producto.cantidadTotalCliente != null ? producto.cantidadTotalCliente - asignado : null
                   return (
                     <td className="px-3 py-1.5 text-right" key={producto.productoId}>
-                      {producto.cantidadTotalCliente ? formatearNumero(producto.cantidadTotalCliente) : <span className="text-slate-400">no informado</span>}
+                        {producto.cantidadTotalCliente != null ? formatearNumero(producto.cantidadTotalCliente) : <span className="text-slate-400">no informado</span>}
                       {diferencia !== null && Math.abs(diferencia) >= 0.005 && (
                         <span className={`block font-semibold ${diferencia < 0 ? 'text-red-700' : 'text-amber-700'}`}>
                           {diferencia < 0 ? `faltan ${formatearNumero(-diferencia)}` : `sobran ${formatearNumero(diferencia)}`}

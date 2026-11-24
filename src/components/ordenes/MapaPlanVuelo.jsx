@@ -132,10 +132,11 @@ function MapaPlanVuelo({ plan, viajeSeleccionado }) {
     let vigente = true
     getObstaculosDeOrden(ordenId)
       .then((lista) => { if (vigente) setObstaculosCargados({ ordenId, lista }) })
-      .catch(() => {})
+      .catch(() => { if (vigente) setObstaculosCargados({ ordenId, lista: [], error: true }) })
     return () => { vigente = false }
   }, [ordenId])
   const obstaculos = obstaculosCargados.ordenId === ordenId ? obstaculosCargados.lista : []
+  const errorObstaculos = obstaculosCargados.ordenId === ordenId && obstaculosCargados.error
 
   if (!plan?.lote?.geometria) {
     return null
@@ -231,9 +232,15 @@ function MapaPlanVuelo({ plan, viajeSeleccionado }) {
         <AjustarVista plan={plan} />
         <ControlesVista viajes={viajes} viajeDetalle={viajeDetalle} />
       </MapContainer>
+      {errorObstaculos && (
+        <p className="absolute bottom-7 right-2 z-[500] max-w-[16rem] rounded-md bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950 shadow-md" role="alert">
+          No se pudieron cargar los obstáculos. El mapa puede estar incompleto.
+        </p>
+      )}
       {obstaculos.length > 0 && (
         <div className="absolute bottom-7 right-2 z-[500] max-h-40 max-w-[16rem] overflow-y-auto rounded-md bg-white/95 px-3 py-2 text-xs shadow-md">
           <p className="mb-1 font-bold text-slate-900">Obstáculos del lote</p>
+          <p className="mb-1 text-slate-600">Son referencias visuales. La ruta no los esquiva automáticamente.</p>
           <ul className="space-y-1">
             {obstaculos.map((obstaculo) => (
               <li className="flex items-center gap-2 text-slate-700" key={obstaculo.id}>
